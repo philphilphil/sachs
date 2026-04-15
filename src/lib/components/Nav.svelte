@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { base } from '$app/paths';
 
   let menuOpen = $state(false);
 
@@ -14,7 +15,7 @@
 <nav class="bg-white shadow-sm sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
     <div class="flex items-center justify-between h-16">
-      <a href="/" class="text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
+      <a href="{base}/" class="text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
         Music Trainer
       </a>
 
@@ -36,9 +37,9 @@
       <div class="hidden md:flex items-center gap-1">
         {#each links as link}
           <a
-            href={link.href}
+            href="{base}{link.href}"
             class="px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              {page.url.pathname === link.href
+              {page.url.pathname === base + link.href
               ? 'bg-primary-50 text-primary-700'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}"
           >
@@ -52,9 +53,9 @@
       <div class="md:hidden pb-3 border-t border-slate-100 mt-1 space-y-1">
         {#each links as link}
           <a
-            href={link.href}
+            href="{base}{link.href}"
             class="block px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              {page.url.pathname === link.href
+              {page.url.pathname === base + link.href
               ? 'bg-primary-50 text-primary-700'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}"
             onclick={() => (menuOpen = false)}

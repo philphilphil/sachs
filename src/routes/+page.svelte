@@ -1,32 +1,33 @@
 <script lang="ts">
   import FeatureCard from '$lib/components/FeatureCard.svelte';
+  import { base } from '$app/paths';
 
   const features = [
     {
       title: 'Circle of Fifths',
       description: 'Explore keys and their relationships',
-      href: '/circle-of-fifths',
+      href: `${base}/circle-of-fifths`,
       iconLabel: 'V',
       iconColor: '#0d9488'
     },
     {
       title: 'Note Reading Trainer',
       description: 'Identify notes on the treble clef',
-      href: '/note-trainer',
+      href: `${base}/note-trainer`,
       iconLabel: 'N',
       iconColor: '#7c3aed'
     },
     {
       title: 'Ear Training',
       description: 'Recognize notes and keys by ear',
-      href: '/ear-training',
+      href: `${base}/ear-training`,
       iconLabel: 'E',
       iconColor: '#0891b2'
     },
     {
       title: 'Violin Finger Patterns',
       description: 'Learn finger positions for every key',
-      href: '/finger-patterns',
+      href: `${base}/finger-patterns`,
       iconLabel: 'F',
       iconColor: '#c026d3'
     }
