@@ -1,19 +1,21 @@
 <svelte:head>
-  <title>Note Reading Trainer - Music Trainer</title>
+  <title>Note Reading — Hans Sach's Musikschule</title>
 </svelte:head>
 
-<div class="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
-  <div class="bg-white rounded-2xl p-10 shadow-sm border border-slate-100">
-    <div
-      class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl shadow-sm"
-      style="background-color: #7c3aed"
-    >
-      N
+<div class="max-w-2xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+  <div class="animate-in">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background-color: #f5f3ff; color: #7c3aed;">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+          <path d="M13 3v10.27a2.5 2.5 0 1 1-2-2.45V5.5L13 3z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-text-primary">Note Reading</h1>
     </div>
-    <h1 class="text-2xl font-bold text-slate-900">Note Reading Trainer</h1>
-    <p class="mt-3 text-slate-500">Identify notes on the treble clef</p>
-    <span class="inline-block mt-6 px-4 py-1.5 bg-slate-100 text-slate-500 text-sm font-medium rounded-full">
-      Coming soon
-    </span>
+    <p class="text-text-secondary mb-8">Identify notes on the treble clef.</p>
+
+    <div class="bg-bg-card rounded-xl border border-border p-8 text-center">
+      <p class="text-sm text-text-tertiary">Coming soon</p>
+    </div>
   </div>
 </div>

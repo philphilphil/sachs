@@ -12,36 +12,47 @@
   ];
 </script>
 
-<nav class="bg-white shadow-sm sticky top-0 z-50">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6">
-    <div class="flex items-center justify-between h-16">
-      <a href="{base}/" class="text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
-        Music Trainer
+<nav class="sticky top-0 z-50 bg-bg/80 backdrop-blur-xl border-b border-border">
+  <div class="max-w-5xl mx-auto px-5 sm:px-8">
+    <div class="flex items-center justify-between h-14">
+      <!-- Logo -->
+      <a href="{base}/" class="flex items-center gap-2.5 group">
+        <div class="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+          <svg viewBox="0 0 16 16" class="w-4 h-4 text-white" fill="currentColor">
+            <path d="M11 1v10.268A2 2 0 1 1 9 9.268V3h0V1h2zM5 5v6.268A2 2 0 1 1 3 9.268V7h0V5h2z" />
+          </svg>
+        </div>
+        <span class="text-[15px] font-semibold text-text-primary">
+          Hans Sach's Musikschule
+        </span>
       </a>
 
+      <!-- Mobile menu button -->
       <button
-        class="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+        class="md:hidden p-2 -mr-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
         onclick={() => (menuOpen = !menuOpen)}
         aria-label="Toggle menu"
         aria-expanded={menuOpen}
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
           {#if menuOpen}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           {:else}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
           {/if}
         </svg>
       </button>
 
-      <div class="hidden md:flex items-center gap-1">
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-0.5">
         {#each links as link}
+          {@const isActive = page.url.pathname === base + link.href}
           <a
             href="{base}{link.href}"
-            class="px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              {page.url.pathname === base + link.href
-              ? 'bg-primary-50 text-primary-700'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}"
+            class="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors
+              {isActive
+              ? 'text-accent bg-accent-light'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}"
           >
             {link.label}
           </a>
@@ -49,15 +60,17 @@
       </div>
     </div>
 
+    <!-- Mobile menu -->
     {#if menuOpen}
-      <div class="md:hidden pb-3 border-t border-slate-100 mt-1 space-y-1">
+      <div class="md:hidden pb-3 space-y-0.5">
         {#each links as link}
+          {@const isActive = page.url.pathname === base + link.href}
           <a
             href="{base}{link.href}"
-            class="block px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              {page.url.pathname === base + link.href
-              ? 'bg-primary-50 text-primary-700'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}"
+            class="block px-3 py-2 rounded-md text-sm font-medium transition-colors
+              {isActive
+              ? 'text-accent bg-accent-light'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}"
             onclick={() => (menuOpen = false)}
           >
             {link.label}
