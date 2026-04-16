@@ -40,3 +40,29 @@ export function generateNoteQuestion(
     correctAnswer: soundingPitch(note, keySignature)
   };
 }
+
+export interface KeyQuestion {
+  mode: 'key';
+  keySignature: KeySignature;
+  correctAnswer: string;
+}
+
+export type Question = NoteQuestion | KeyQuestion;
+
+export function generateKeyQuestion(
+  preset: Preset,
+  previousKeySig?: KeySignature
+): KeyQuestion {
+  const allowedKeys =
+    previousKeySig && preset.keys.length > 1
+      ? preset.keys.filter((k) => k.tonic !== previousKeySig.tonic)
+      : preset.keys;
+
+  const keySignature = pickRandom(allowedKeys);
+
+  return {
+    mode: 'key',
+    keySignature,
+    correctAnswer: keySignature.tonic
+  };
+}

@@ -99,3 +99,38 @@ describe('generateNoteQuestion', () => {
     }
   });
 });
+
+import { generateKeyQuestion } from './note-quiz';
+
+describe('generateKeyQuestion', () => {
+  it('returns a KeyQuestion with mode, keySignature, correctAnswer', () => {
+    const q = generateKeyQuestion(PRESETS.find((p) => p.id === 'piano')!);
+    expect(q.mode).toBe('key');
+    expect(q.correctAnswer).toBe(q.keySignature.tonic);
+  });
+
+  it('only uses keys from the preset', () => {
+    const preset = PRESETS.find((p) => p.id === 'violin-1st')!;
+    const allowed = new Set(preset.keys.map((k) => k.tonic));
+    for (let i = 0; i < 50; i++) {
+      const q = generateKeyQuestion(preset);
+      expect(allowed.has(q.keySignature.tonic)).toBe(true);
+    }
+  });
+
+  it('does not reuse the same key signature twice in a row when multiple keys exist', () => {
+    const preset = PRESETS.find((p) => p.id === 'piano')!;
+    let prev: { keySignature: KeySignature } | undefined;
+    for (let i = 0; i < 30; i++) {
+      const q = generateKeyQuestion(preset, prev?.keySignature);
+      if (prev) expect(q.keySignature.tonic).not.toBe(prev.keySignature.tonic);
+      prev = q;
+    }
+  });
+
+  it('returns the only available key when the preset has just one', () => {
+    const preset = PRESETS.find((p) => p.id === 'staff-basics')!;
+    const q = generateKeyQuestion(preset);
+    expect(q.keySignature.tonic).toBe('C');
+  });
+});
