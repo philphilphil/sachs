@@ -10,3 +10,6 @@ vite.config.ts.timestamp-*
 # Superpowers (brainstorming / specs / plans) — local workflow only
 docs/superpowers/
 
+# Playwright MCP test artifacts
+.playwright-mcp/
+

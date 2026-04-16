@@ -9,6 +9,9 @@
   import MajorMinorButtons from '$lib/components/ear-training/MajorMinorButtons.svelte';
   import ReplayControls from '$lib/components/ear-training/ReplayControls.svelte';
   import RevealStaff from '$lib/components/ear-training/RevealStaff.svelte';
+  import CadenceIndicator, {
+    type PlayPhase
+  } from '$lib/components/ear-training/CadenceIndicator.svelte';
 
   import {
     generateScaleDegreeRound,
@@ -24,7 +27,7 @@
   } from '$lib/utils/ear-training/storage';
 
   import { unlockAudio } from '$lib/audio/sampler';
-  import { playCadence } from '$lib/audio/cadence';
+  import { playCadence, CADENCE_CHORD_MS } from '$lib/audio/cadence';
   import { playNote } from '$lib/audio/phrase';
   import { generateKeyModeRound, type KeyModeRound } from '$lib/utils/ear-training/phrase-gen';
   import { playPhrase } from '$lib/audio/phrase';
@@ -42,6 +45,7 @@
   let busy = $state(false);                  // playback in flight
   let feedbackLast = $state<{ degree: ScaleDegree; correct: boolean } | null>(null);
   let levelUpToast = $state(false);
+  let phase = $state<PlayPhase>('idle');
 
   let correct = $state(0);
   let total = $state(0);
@@ -153,6 +157,7 @@
     feedbackLast = null;
     locked = false;
     answers = [];
+    phase = 'idle';
     const prev = round?.tonic;
     round = generateScaleDegreeRound(level, prev);
     await playRound();
@@ -161,12 +166,20 @@
   async function playRound() {
     if (!round) return;
     busy = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
     try {
+      phase = 'cadence-1';
+      timers.push(setTimeout(() => (phase = 'cadence-2'), CADENCE_CHORD_MS));
+      timers.push(setTimeout(() => (phase = 'cadence-3'), CADENCE_CHORD_MS * 2));
+      timers.push(setTimeout(() => (phase = 'cadence-4'), CADENCE_CHORD_MS * 3));
       await playCadence(round.tonic, round.mode);
+      phase = 'target';
       for (const pitch of round.targetPitches) {
         await playNote(pitch);
       }
+      phase = 'idle';
     } finally {
+      timers.forEach(clearTimeout);
       busy = false;
     }
   }
@@ -180,7 +193,9 @@
     if (!round) return;
     busy = true;
     try {
+      phase = 'target';
       for (const pitch of round.targetPitches) await playNote(pitch);
+      phase = 'idle';
     } finally {
       busy = false;
     }
@@ -334,14 +349,19 @@
           </div>
         {/if}
 
-        <p class="eyebrow text-center">
+        <div class="flex flex-col items-center gap-3">
+          <p class="eyebrow text-center">
+            {#if round}
+              Key of {round.tonic}{round.mode === 'minor' ? ' minor' : ' major'}
+              {#if expectedDegrees.length > 1}· {currentIndex + 1} of {expectedDegrees.length}{/if}
+            {:else}
+              …
+            {/if}
+          </p>
           {#if round}
-            Key of {round.tonic}{round.mode === 'minor' ? ' minor' : ' major'}
-            {#if expectedDegrees.length > 1}· {currentIndex + 1} of {expectedDegrees.length}{/if}
-          {:else}
-            …
+            <CadenceIndicator mode={round.mode} {phase} />
           {/if}
-        </p>
+        </div>
 
         <DegreeGrid
           showFlats={showFlats}
