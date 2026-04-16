@@ -6,7 +6,6 @@
     defaultFill
   } from '$lib/utils/circle-math';
   import Wedge from './Wedge.svelte';
-  import ConnectingArcs from './ConnectingArcs.svelte';
 
   interface Props {
     selectedKey: number | null;
@@ -196,15 +195,6 @@
       />
     {/each}
 
-    <!-- Connecting arcs -->
-    <ConnectingArcs
-      {selectedKey}
-      cx={CX}
-      cy={CY}
-      outerMidR={(OUTER_R1 + OUTER_R2) / 2}
-      innerMidR={(INNER_R1 + INNER_R2) / 2}
-      visible={selectedKey !== null}
-    />
   </g>
 </svg>
 
