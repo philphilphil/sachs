@@ -15,23 +15,25 @@
     'A♭', 'E♭', 'B♭', 'F'
   ];
 
-  function stateFor(answer: string): 'neutral' | 'correct' | 'incorrect' | 'reveal' {
+  type ButtonState = 'neutral' | 'correct' | 'incorrect' | 'reveal';
+
+  function stateFor(answer: string): ButtonState {
     if (!feedback) return 'neutral';
     if (feedback.answer === answer) return feedback.correct ? 'correct' : 'incorrect';
     if (!feedback.correct && answer === correctAnswer) return 'reveal';
     return 'neutral';
   }
 
-  function classFor(state: ReturnType<typeof stateFor>): string {
+  function classFor(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'bg-green-100 border-green-400 text-green-800';
+        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]';
       case 'incorrect':
-        return 'bg-red-100 border-red-400 text-red-800';
+        return 'border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)]';
       case 'reveal':
-        return 'bg-green-50 border-green-300 text-green-700';
+        return 'border-[color:var(--color-success)]/60 text-[color:var(--color-success)] bg-[color:var(--color-success-light)]/60';
       default:
-        return 'bg-bg-card border-border text-text-primary hover:border-border-hover';
+        return 'border-border text-text-primary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] hover:bg-[color:var(--color-violet-light)]';
     }
   }
 
@@ -41,8 +43,9 @@
 <div class="grid grid-cols-4 gap-2 max-w-md mx-auto">
   {#each KEYS as k}
     <button
+      aria-label="{k} major"
       {disabled}
-      class="h-14 rounded-lg border text-base font-semibold transition-colors {classFor(stateFor(k))} disabled:cursor-not-allowed"
+      class="h-12 rounded-lg border bg-transparent serif text-base font-medium transition-all duration-200 disabled:cursor-not-allowed {classFor(stateFor(k))}"
       onclick={() => onanswer(k)}
     >
       {k}

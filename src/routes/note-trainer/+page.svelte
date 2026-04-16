@@ -21,7 +21,7 @@
   import StaffDisplay from '$lib/components/note-trainer/StaffDisplay.svelte';
   import AnswerGrid from '$lib/components/note-trainer/AnswerGrid.svelte';
   import KeyAnswerGrid from '$lib/components/note-trainer/KeyAnswerGrid.svelte';
-  import ScoreBar from '$lib/components/note-trainer/ScoreBar.svelte';
+  import ScoreStrip from '$lib/components/note-trainer/ScoreStrip.svelte';
 
   let mode = $state<QuizMode>('note');
   let presetId = $state<PresetId>('violin-1st');
@@ -38,6 +38,7 @@
   let feedback = $state<{ answer: string; correct: boolean } | null>(null);
 
   let feedbackTimer: ReturnType<typeof setTimeout> | null = null;
+  let staffPulse = $state<'correct' | 'incorrect' | null>(null);
 
   function currentPreset(): Preset {
     const base =
@@ -70,6 +71,7 @@
       noteQuestion = null;
     }
     feedback = null;
+    staffPulse = null;
   }
 
   function resetSession() {
@@ -90,6 +92,7 @@
 
     const isCorrect = answer === target;
     feedback = { answer, correct: isCorrect };
+    staffPulse = isCorrect ? 'correct' : 'incorrect';
     total += 1;
     if (isCorrect) {
       correct += 1;
@@ -105,7 +108,7 @@
     feedbackTimer = setTimeout(() => {
       feedbackTimer = null;
       nextQuestion();
-    }, 800);
+    }, 900);
   }
 
   function handleModeChange(newMode: QuizMode) {
@@ -123,6 +126,16 @@
     resetSession();
   }
 
+  function handleRangeChange(range: { min: number; max: number }) {
+    octaveRange = range;
+    correct = 0;
+    total = 0;
+    streak = 0;
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackTimer = null;
+    nextQuestion();
+  }
+
   const KEY_TO_LETTER: Record<string, string> = {
     c: 'C',
     d: 'D',
@@ -131,28 +144,36 @@
     g: 'G',
     a: 'A',
     b: 'B',
-    // H = German B natural
-    h: 'B'
+    h: 'B' // German B natural
   };
 
   function handleKeydown(event: KeyboardEvent) {
     if (mode !== 'note') return;
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.metaKey || event.ctrlKey) return;
     const letter = KEY_TO_LETTER[event.key.toLowerCase()];
     if (!letter) return;
     event.preventDefault();
-    handleAnswer(letter);
+    // Only shift/alt act as modifiers — combined (e.g. Shift+Alt) → natural.
+    const shift = event.shiftKey && !event.altKey;
+    const alt = event.altKey && !event.shiftKey;
+    if (naturalsOnly) {
+      handleAnswer(letter);
+    } else if (shift) {
+      handleAnswer(`${letter}♯`);
+    } else if (alt) {
+      handleAnswer(`${letter}♭`);
+    } else {
+      handleAnswer(letter);
+    }
   }
 
-  function handleRangeChange(range: { min: number; max: number }) {
-    octaveRange = range;
-    // Keep the best streak for "piano" mode; only restart the counter.
-    correct = 0;
-    total = 0;
-    streak = 0;
-    if (feedbackTimer) clearTimeout(feedbackTimer);
-    feedbackTimer = null;
-    nextQuestion();
+  function keyLabel(ks: KeySignature | undefined): string {
+    if (!ks) return '';
+    if (ks.type === 'natural') return `Key of ${ks.tonic} major · no accidentals`;
+    const count = ks.accidentals.length;
+    const symbol = ks.type === 'sharp' ? '♯' : '♭';
+    const word = ks.type === 'sharp' ? 'sharp' : 'flat';
+    return `Key of ${ks.tonic} major · ${count} ${word}${count > 1 ? 's' : ''} (${symbol})`;
   }
 
   onMount(() => {
@@ -166,30 +187,22 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+<div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
-    <!-- Header -->
-    <div class="flex items-center gap-3 mb-6">
-      <div
-        class="w-9 h-9 rounded-lg flex items-center justify-center"
-        style="background-color: #f5f3ff; color: #7c3aed;"
-      >
-        <svg viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M13 3v10.27a2.5 2.5 0 1 1-2-2.45V5.5L13 3z" />
-        </svg>
+    <!-- Top strip: title left, score right -->
+    <div class="flex items-start justify-between gap-6 mb-10">
+      <div>
+        <p class="eyebrow mb-2">Chapter II</p>
+        <h1 class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight">
+          Note <span class="serif italic font-normal">Reading</span>
+        </h1>
       </div>
-      <h1 class="text-2xl font-bold tracking-tight text-text-primary">
-        Note Reading
-      </h1>
+      <ScoreStrip {correct} {total} {streak} {bestStreak} />
     </div>
 
-    <!-- Mode toggle -->
-    <div class="flex justify-center mb-4">
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
       <ModeToggle {mode} onchange={handleModeChange} />
-    </div>
-
-    <!-- Preset picker -->
-    <div class="flex justify-center mb-6">
       <PresetPicker
         {presetId}
         {octaveRange}
@@ -201,24 +214,37 @@
       />
     </div>
 
-    <!-- Staff -->
-    <div class="bg-bg-card rounded-xl border border-border p-4 mb-6 min-h-[180px] flex items-center justify-center">
-      {#if mode === 'note' && noteQuestion}
-        <StaffDisplay
-          keySignature={noteQuestion.keySignature}
-          note={noteQuestion.note}
-        />
-      {:else if mode === 'key' && keyQuestion}
-        <StaffDisplay
-          keySignature={keyQuestion.keySignature}
-          note={null}
-        />
-      {:else}
-        <p class="text-sm text-text-tertiary">Loading…</p>
-      {/if}
+    <!-- Staff area (no card — music breathes on the page) -->
+    <div class="mb-12 pt-2">
+      <p class="eyebrow text-center mb-5">
+        {#if mode === 'note'}
+          {keyLabel(noteQuestion?.keySignature)}
+        {:else}
+          Identify the key signature
+        {/if}
+      </p>
+
+      <div
+        class="flex justify-center transition-transform"
+        class:animate-pulse-glow={staffPulse === 'correct'}
+        class:animate-shake-x={staffPulse === 'incorrect'}
+      >
+        {#if mode === 'note' && noteQuestion}
+          <StaffDisplay
+            keySignature={noteQuestion.keySignature}
+            note={noteQuestion.note}
+          />
+        {:else if mode === 'key' && keyQuestion}
+          <StaffDisplay keySignature={keyQuestion.keySignature} note={null} />
+        {:else}
+          <div class="h-[180px] flex items-center">
+            <p class="text-sm text-text-tertiary">Loading…</p>
+          </div>
+        {/if}
+      </div>
     </div>
 
-    <!-- Answer grid -->
+    <!-- Answer -->
     <div class="mb-6">
       {#if mode === 'note' && noteQuestion}
         <AnswerGrid
@@ -236,7 +262,35 @@
       {/if}
     </div>
 
-    <!-- Score -->
-    <ScoreBar {correct} {total} {streak} {bestStreak} />
+    <!-- Keyboard hint -->
+    {#if mode === 'note'}
+      <p class="text-center text-xs text-text-tertiary">
+        {#if naturalsOnly}
+          Press <kbd class="kbd">C</kbd> <kbd class="kbd">D</kbd>
+          <kbd class="kbd">E</kbd> <kbd class="kbd">F</kbd>
+          <kbd class="kbd">G</kbd> <kbd class="kbd">A</kbd>
+          <kbd class="kbd">B</kbd> — or <kbd class="kbd">H</kbd> for B
+        {:else}
+          Press a letter for the natural ·
+          <kbd class="kbd">Shift</kbd> <span class="opacity-60">+</span> letter for ♯ ·
+          <kbd class="kbd">Alt</kbd> <span class="opacity-60">+</span> letter for ♭
+        {/if}
+      </p>
+    {/if}
   </div>
 </div>
+
+<style>
+  :global(.kbd) {
+    display: inline-block;
+    padding: 1px 6px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: inset 0 -1px 0 var(--color-border);
+  }
+</style>

@@ -9,28 +9,29 @@
   let { mode, onchange }: Props = $props();
 
   const modes: { value: QuizMode; label: string }[] = [
-    { value: 'note', label: 'Note Identification' },
+    { value: 'note', label: 'Note ID' },
     { value: 'key', label: 'Key Signature' }
   ];
 </script>
 
-<div
-  class="inline-flex rounded-lg border border-border bg-bg-card p-0.5"
-  role="radiogroup"
-  aria-label="Mode"
->
+<div class="inline-flex gap-6 text-sm" role="radiogroup" aria-label="Mode">
   {#each modes as m}
     <button
       role="radio"
       aria-checked={mode === m.value}
-      class="px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200
+      class="relative py-1 font-medium transition-colors duration-200
         {mode === m.value
-        ? 'text-white shadow-sm'
-        : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}"
-      style={mode === m.value ? 'background-color: #7c3aed;' : ''}
+        ? 'text-text-primary'
+        : 'text-text-tertiary hover:text-text-secondary'}"
       onclick={() => onchange(m.value)}
     >
       {m.label}
+      {#if mode === m.value}
+        <span
+          class="absolute left-0 right-0 -bottom-0.5 h-[2px]"
+          style="background-color: var(--color-violet);"
+        ></span>
+      {/if}
     </button>
   {/each}
 </div>

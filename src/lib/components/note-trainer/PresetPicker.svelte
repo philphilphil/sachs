@@ -41,11 +41,12 @@
   }
 </script>
 
-<div class="flex flex-wrap items-center gap-3">
-  <label class="flex items-center gap-2 text-sm">
-    <span class="text-text-secondary">Preset</span>
+<div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+  <label class="flex items-center gap-2">
+    <span class="eyebrow">Preset</span>
     <select
-      class="px-3 py-1.5 rounded-lg border border-border bg-bg-card text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+      class="py-1 pr-5 pl-0 bg-transparent text-text-primary font-medium appearance-none border-0 focus:outline-none focus:ring-0 cursor-pointer"
+      style="background-image: url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 20 20\' fill=\'%239a9a9a\'%3E%3Cpath d=\'M5 7l5 5 5-5\' stroke=\'%239a9a9a\' stroke-width=\'1.5\' fill=\'none\'/%3E%3C/svg%3E'); background-position: right center; background-repeat: no-repeat;"
       value={presetId}
       onchange={handlePresetSelect}
     >
@@ -56,10 +57,10 @@
   </label>
 
   {#if presetId === 'piano'}
-    <label class="flex items-center gap-2 text-sm">
-      <span class="text-text-secondary">Range</span>
+    <label class="flex items-center gap-2">
+      <span class="eyebrow">Range</span>
       <select
-        class="px-2 py-1.5 rounded-lg border border-border bg-bg-card text-text-primary text-sm"
+        class="py-1 bg-transparent text-text-primary font-medium border-0 focus:outline-none cursor-pointer"
         value={octaveRange.min}
         onchange={handleMinChange}
         aria-label="Lowest octave"
@@ -68,9 +69,9 @@
           <option value={o}>C{o}</option>
         {/each}
       </select>
-      <span class="text-text-tertiary">to</span>
+      <span class="text-text-tertiary">–</span>
       <select
-        class="px-2 py-1.5 rounded-lg border border-border bg-bg-card text-text-primary text-sm"
+        class="py-1 bg-transparent text-text-primary font-medium border-0 focus:outline-none cursor-pointer"
         value={octaveRange.max}
         onchange={handleMaxChange}
         aria-label="Highest octave"
@@ -83,14 +84,15 @@
   {/if}
 
   {#if showNaturalsOnly}
-    <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none">
+    <label class="flex items-center gap-2 cursor-pointer select-none">
       <input
         type="checkbox"
-        class="w-4 h-4 rounded border-border accent-violet-600"
+        class="w-3.5 h-3.5 rounded-sm border-border"
+        style="accent-color: var(--color-violet);"
         checked={naturalsOnly}
         onchange={(e) => onnaturalsonlychange((e.target as HTMLInputElement).checked)}
       />
-      <span>Naturals only</span>
+      <span class="text-text-secondary">Naturals only</span>
     </label>
   {/if}
 </div>

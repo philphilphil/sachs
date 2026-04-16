@@ -20,13 +20,13 @@
       const { Factory, StaveNote, Voice, Formatter, Accidental } = mod;
 
       const factory = new Factory({
-        renderer: { elementId: container, width: 480, height: 160 }
+        renderer: { elementId: container, width: 560, height: 180 }
       });
 
       const system = factory.System({
         x: 10,
-        y: 10,
-        width: 460,
+        y: 20,
+        width: 540,
         spaceBetweenStaves: 10
       });
 

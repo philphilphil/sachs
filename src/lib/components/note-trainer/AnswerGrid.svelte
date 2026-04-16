@@ -12,52 +12,54 @@
 
   const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
-  function stateFor(answer: string): 'neutral' | 'correct' | 'incorrect' | 'reveal' {
+  type ButtonState = 'neutral' | 'correct' | 'incorrect' | 'reveal';
+
+  function stateFor(answer: string): ButtonState {
     if (!feedback) return 'neutral';
     if (feedback.answer === answer) return feedback.correct ? 'correct' : 'incorrect';
     if (!feedback.correct && answer === correctAnswer) return 'reveal';
     return 'neutral';
   }
 
-  function classFor(state: ReturnType<typeof stateFor>): string {
+  function letterClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'bg-green-100 border-green-400 text-green-800';
+        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]';
       case 'incorrect':
-        return 'bg-red-100 border-red-400 text-red-800';
+        return 'border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)]';
       case 'reveal':
-        return 'bg-green-50 border-green-300 text-green-700';
+        return 'border-[color:var(--color-success)]/60 text-[color:var(--color-success)] bg-[color:var(--color-success-light)]/60';
       default:
-        return 'bg-bg-card border-border text-text-primary hover:border-border-hover';
+        return 'border-border text-text-primary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] hover:bg-[color:var(--color-violet-light)]';
     }
   }
 
-  function pillClassFor(state: ReturnType<typeof stateFor>): string {
+  function pillClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'bg-green-100 border-green-400 text-green-800';
+        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]';
       case 'incorrect':
-        return 'bg-red-100 border-red-400 text-red-800';
+        return 'border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)]';
       case 'reveal':
-        return 'bg-green-50 border-green-300 text-green-700';
+        return 'border-[color:var(--color-success)]/50 text-[color:var(--color-success)]/80';
       default:
-        return 'bg-bg-card border-border text-text-tertiary hover:text-text-primary hover:border-border-hover';
+        return 'border-border-subtle text-text-tertiary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)]';
     }
   }
 
   const disabled = $derived(feedback !== null);
 </script>
 
-<div class="flex justify-center gap-2">
+<div class="flex justify-center gap-1.5 sm:gap-2">
   {#each LETTERS as letter}
     {@const sharpAnswer = `${letter}♯`}
     {@const flatAnswer = `${letter}♭`}
-    <div class="flex flex-col items-center gap-1">
+    <div class="flex flex-col items-center gap-1.5">
       {#if showAccidentals}
         <button
           aria-label={sharpAnswer}
           {disabled}
-          class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(sharpAnswer))} disabled:cursor-not-allowed"
+          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(stateFor(sharpAnswer))}"
           onclick={() => onanswer(sharpAnswer)}
         >
           ♯
@@ -66,7 +68,7 @@
       <button
         aria-label={letter}
         {disabled}
-        class="w-14 h-14 rounded-lg border text-lg font-semibold transition-colors {classFor(stateFor(letter))} disabled:cursor-not-allowed"
+        class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border bg-transparent text-lg serif font-medium transition-all duration-200 disabled:cursor-not-allowed {letterClass(stateFor(letter))}"
         onclick={() => onanswer(letter)}
       >
         {letter}
@@ -75,7 +77,7 @@
         <button
           aria-label={flatAnswer}
           {disabled}
-          class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(flatAnswer))} disabled:cursor-not-allowed"
+          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(stateFor(flatAnswer))}"
           onclick={() => onanswer(flatAnswer)}
         >
           ♭
