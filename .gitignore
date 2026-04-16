@@ -6,3 +6,7 @@ build
 !.env.example
 vite.config.ts.timestamp-*
 .superpowers/brainstorm/**/state/
+
+# Superpowers (brainstorming / specs / plans) — local workflow only
+docs/superpowers/
+
