@@ -23,12 +23,11 @@ describe('generateQuestion', () => {
   });
 
   it('relative minor questions have answerRing "minor"', () => {
-    // Generate many questions, find a relative minor one
+    // Generate many questions, find a "What is the relative minor of X?" one
     for (let i = 0; i < 100; i++) {
       const q = generateQuestion();
-      if (q.text.includes('relative minor')) {
+      if (q.text.startsWith('What is the relative minor')) {
         expect(q.answerRing).toBe('minor');
-        // Verify correctness: relative minor of C is Am (index 0)
         const keyName = q.text.match(/of (\S+)\?/)?.[1];
         if (keyName) {
           const key = KEYS.find((k) => k.name === keyName);
