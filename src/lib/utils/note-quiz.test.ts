@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { soundingPitch } from './note-quiz';
-import { KEY_SIGNATURES } from '$lib/data/notes';
+import { KEY_SIGNATURES, type KeySignature } from '$lib/data/notes';
 
 function keyOf(tonic: string) {
   return KEY_SIGNATURES.find((k) => k.tonic === tonic)!;
