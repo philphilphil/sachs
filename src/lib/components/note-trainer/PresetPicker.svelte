@@ -4,11 +4,22 @@
   interface Props {
     presetId: PresetId;
     octaveRange: { min: number; max: number };
+    showNaturalsOnly: boolean;
+    naturalsOnly: boolean;
     onpresetchange: (id: PresetId) => void;
     onrangechange: (range: { min: number; max: number }) => void;
+    onnaturalsonlychange: (value: boolean) => void;
   }
 
-  let { presetId, octaveRange, onpresetchange, onrangechange }: Props = $props();
+  let {
+    presetId,
+    octaveRange,
+    showNaturalsOnly,
+    naturalsOnly,
+    onpresetchange,
+    onrangechange,
+    onnaturalsonlychange
+  }: Props = $props();
 
   const OCTAVE_OPTIONS = [2, 3, 4, 5, 6, 7];
 
@@ -68,6 +79,18 @@
           <option value={o}>B{o}</option>
         {/each}
       </select>
+    </label>
+  {/if}
+
+  {#if showNaturalsOnly}
+    <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none">
+      <input
+        type="checkbox"
+        class="w-4 h-4 rounded border-border accent-violet-600"
+        checked={naturalsOnly}
+        onchange={(e) => onnaturalsonlychange((e.target as HTMLInputElement).checked)}
+      />
+      <span>Naturals only</span>
     </label>
   {/if}
 </div>

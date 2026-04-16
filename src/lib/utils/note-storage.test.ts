@@ -61,6 +61,19 @@ describe('note-storage', () => {
     expect(loadBest('violin-1st', 'note')).toBe(0);
   });
 
+  it('keeps separate values per variant', () => {
+    saveBest('violin-1st', 'note', 10);
+    saveBest('violin-1st', 'note', 4, 'naturals');
+    expect(loadBest('violin-1st', 'note')).toBe(10);
+    expect(loadBest('violin-1st', 'note', 'naturals')).toBe(4);
+  });
+
+  it('uses a separate localStorage key when a variant is set', () => {
+    saveBest('piano', 'note', 9, 'naturals');
+    expect(localStorage.getItem('note-trainer:best:piano:note:naturals')).toBe('9');
+    expect(localStorage.getItem('note-trainer:best:piano:note')).toBe(null);
+  });
+
   describe('when localStorage throws', () => {
     let original: Storage;
     beforeEach(() => {

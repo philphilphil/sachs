@@ -26,6 +26,7 @@
   let mode = $state<QuizMode>('note');
   let presetId = $state<PresetId>('violin-1st');
   let octaveRange = $state<{ min: number; max: number }>({ min: 3, max: 5 });
+  let naturalsOnly = $state(false);
 
   let correct = $state(0);
   let total = $state(0);
@@ -39,8 +40,19 @@
   let feedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   function currentPreset(): Preset {
-    if (presetId === 'piano') return buildPianoPreset(octaveRange);
-    return PRESETS.find((p) => p.id === presetId)!;
+    const base =
+      presetId === 'piano'
+        ? buildPianoPreset(octaveRange)
+        : PRESETS.find((p) => p.id === presetId)!;
+    if (mode === 'note' && naturalsOnly) {
+      const cMajor = base.keys.find((k) => k.tonic === 'C');
+      if (cMajor) return { ...base, keys: [cMajor] };
+    }
+    return base;
+  }
+
+  function storageVariant(): string | undefined {
+    return mode === 'note' && naturalsOnly ? 'naturals' : undefined;
   }
 
   function previousKeySig(): KeySignature | undefined {
@@ -64,7 +76,7 @@
     correct = 0;
     total = 0;
     streak = 0;
-    bestStreak = browser ? loadBest(presetId, mode) : 0;
+    bestStreak = browser ? loadBest(presetId, mode, storageVariant()) : 0;
     if (feedbackTimer) clearTimeout(feedbackTimer);
     feedbackTimer = null;
     nextQuestion();
@@ -84,7 +96,7 @@
       streak += 1;
       if (streak > bestStreak) {
         bestStreak = streak;
-        if (browser) saveBest(presetId, mode, bestStreak);
+        if (browser) saveBest(presetId, mode, bestStreak, storageVariant());
       }
     } else {
       streak = 0;
@@ -106,6 +118,32 @@
     resetSession();
   }
 
+  function handleNaturalsOnlyChange(value: boolean) {
+    naturalsOnly = value;
+    resetSession();
+  }
+
+  const KEY_TO_LETTER: Record<string, string> = {
+    c: 'C',
+    d: 'D',
+    e: 'E',
+    f: 'F',
+    g: 'G',
+    a: 'A',
+    b: 'B',
+    // H = German B natural
+    h: 'B'
+  };
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (mode !== 'note') return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const letter = KEY_TO_LETTER[event.key.toLowerCase()];
+    if (!letter) return;
+    event.preventDefault();
+    handleAnswer(letter);
+  }
+
   function handleRangeChange(range: { min: number; max: number }) {
     octaveRange = range;
     // Keep the best streak for "piano" mode; only restart the counter.
@@ -125,6 +163,8 @@
 <svelte:head>
   <title>Note Reading — Hans Sach's Musikschule</title>
 </svelte:head>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
   <div class="animate-in">
@@ -153,8 +193,11 @@
       <PresetPicker
         {presetId}
         {octaveRange}
+        {naturalsOnly}
+        showNaturalsOnly={mode === 'note'}
         onpresetchange={handlePresetChange}
         onrangechange={handleRangeChange}
+        onnaturalsonlychange={handleNaturalsOnlyChange}
       />
     </div>
 
@@ -181,6 +224,7 @@
         <AnswerGrid
           correctAnswer={noteQuestion.correctAnswer}
           {feedback}
+          showAccidentals={!naturalsOnly}
           onanswer={handleAnswer}
         />
       {:else if mode === 'key' && keyQuestion}

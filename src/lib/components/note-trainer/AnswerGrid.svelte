@@ -4,10 +4,11 @@
   interface Props {
     correctAnswer: string;
     feedback: Feedback;
+    showAccidentals?: boolean;
     onanswer: (answer: string) => void;
   }
 
-  let { correctAnswer, feedback, onanswer }: Props = $props();
+  let { correctAnswer, feedback, showAccidentals = true, onanswer }: Props = $props();
 
   const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
@@ -52,14 +53,16 @@
     {@const sharpAnswer = `${letter}♯`}
     {@const flatAnswer = `${letter}♭`}
     <div class="flex flex-col items-center gap-1">
-      <button
-        aria-label={sharpAnswer}
-        {disabled}
-        class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(sharpAnswer))} disabled:cursor-not-allowed"
-        onclick={() => onanswer(sharpAnswer)}
-      >
-        ♯
-      </button>
+      {#if showAccidentals}
+        <button
+          aria-label={sharpAnswer}
+          {disabled}
+          class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(sharpAnswer))} disabled:cursor-not-allowed"
+          onclick={() => onanswer(sharpAnswer)}
+        >
+          ♯
+        </button>
+      {/if}
       <button
         aria-label={letter}
         {disabled}
@@ -68,14 +71,16 @@
       >
         {letter}
       </button>
-      <button
-        aria-label={flatAnswer}
-        {disabled}
-        class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(flatAnswer))} disabled:cursor-not-allowed"
-        onclick={() => onanswer(flatAnswer)}
-      >
-        ♭
-      </button>
+      {#if showAccidentals}
+        <button
+          aria-label={flatAnswer}
+          {disabled}
+          class="w-10 h-6 text-xs rounded-md border font-medium transition-colors {pillClassFor(stateFor(flatAnswer))} disabled:cursor-not-allowed"
+          onclick={() => onanswer(flatAnswer)}
+        >
+          ♭
+        </button>
+      {/if}
     </div>
   {/each}
 </div>
