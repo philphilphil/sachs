@@ -63,15 +63,17 @@ describe('generateQuestion', () => {
     }
   });
 
-  it('signature questions about sharp/flat count have correct answers', () => {
+  it('signature answers include the note names', () => {
     for (let i = 0; i < 100; i++) {
       const q = generateQuestion('signatures');
       if (q.text.startsWith('How many sharps')) {
         const key = KEYS[q.keyIndex];
         if (key.sharps > 0) {
           expect(q.answer).toContain('sharp');
+          expect(q.answer).toContain(key.signatureNotes[0]);
         } else if (key.flats > 0) {
           expect(q.answer).toContain('flat');
+          expect(q.answer).toContain(key.signatureNotes[0]);
         } else {
           expect(q.answer).toBe('No sharps or flats');
         }

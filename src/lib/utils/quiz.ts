@@ -45,36 +45,34 @@ const orderGenerators: QuestionGenerator[] = [
   })
 ];
 
+function signatureAnswer(i: number): string {
+  const key = KEYS[i];
+  if (key.sharps > 0) {
+    return `${key.sharps} sharp${key.sharps > 1 ? 's' : ''}: ${key.signatureNotes.join(', ')}`;
+  }
+  if (key.flats > 0) {
+    return `${key.flats} flat${key.flats > 1 ? 's' : ''}: ${key.signatureNotes.join(', ')}`;
+  }
+  return 'No sharps or flats';
+}
+
 const signatureGenerators: QuestionGenerator[] = [
   // "How many sharps/flats does [key] major have?"
-  (i) => {
-    const key = KEYS[i];
-    const answer =
-      key.sharps > 0
-        ? `${key.sharps} sharp${key.sharps > 1 ? 's' : ''}`
-        : key.flats > 0
-          ? `${key.flats} flat${key.flats > 1 ? 's' : ''}`
-          : 'No sharps or flats';
-    return {
-      text: `How many sharps or flats does ${key.name} major have?`,
-      answer,
-      keyIndex: i,
-      category: 'signatures'
-    };
-  },
+  (i) => ({
+    text: `How many sharps or flats does ${KEYS[i].name} major have?`,
+    answer: signatureAnswer(i),
+    keyIndex: i,
+    category: 'signatures'
+  }),
 
   // "What are the sharps/flats in [key] major?"
   (i) => {
     const key = KEYS[i];
-    const answer =
-      key.signatureNotes.length > 0
-        ? key.signatureNotes.join(', ')
-        : 'None';
     const type =
       key.sharps > 0 ? 'sharps' : key.flats > 0 ? 'flats' : 'sharps or flats';
     return {
       text: `Name the ${type} in ${key.name} major.`,
-      answer,
+      answer: signatureAnswer(i),
       keyIndex: i,
       category: 'signatures'
     };
@@ -89,9 +87,12 @@ const signatureGenerators: QuestionGenerator[] = [
         : key.flats > 0
           ? `${key.flats} flat${key.flats > 1 ? 's' : ''}`
           : 'no sharps or flats';
+    const notes = key.signatureNotes.length > 0
+      ? ` (${key.signatureNotes.join(', ')})`
+      : '';
     return {
       text: `Which major key has ${desc}?`,
-      answer: key.name,
+      answer: `${key.name} major${notes}`,
       keyIndex: i,
       category: 'signatures'
     };

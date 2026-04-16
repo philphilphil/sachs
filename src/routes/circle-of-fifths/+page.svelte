@@ -166,6 +166,7 @@
           {selectedKey}
           rotation={$rotation}
           {mode}
+          hideLabels={mode === 'learn' && currentQuestion?.category === 'order'}
           quizFeedback={null}
           onselect={handleSelect}
           ondragrotate={handleDragRotate}

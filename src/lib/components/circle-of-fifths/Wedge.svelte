@@ -11,6 +11,7 @@
     fill: string;
     isSelected: boolean;
     feedbackClass: string;
+    hideLabel: boolean;
     rotation: number;
     onclick: () => void;
     onkeydown: (e: KeyboardEvent) => void;
@@ -26,6 +27,7 @@
     fill,
     isSelected,
     feedbackClass = '',
+    hideLabel = false,
     rotation,
     onclick,
     onkeydown
@@ -55,20 +57,22 @@
     stroke-width="1"
     class="wedge-path"
   />
-  <text
-    x={labelX}
-    y={labelY}
-    text-anchor="middle"
-    dominant-baseline="central"
-    class="wedge-label"
-    transform="rotate({-rotation}, {labelX}, {labelY})"
-    fill="#1a1a1a"
-    font-size={outerRadius > 200 ? 15 : 11}
-    font-weight={isSelected ? 700 : 500}
-    font-family="'Outfit', sans-serif"
-  >
-    {label}
-  </text>
+  {#if !hideLabel}
+    <text
+      x={labelX}
+      y={labelY}
+      text-anchor="middle"
+      dominant-baseline="central"
+      class="wedge-label"
+      transform="rotate({-rotation}, {labelX}, {labelY})"
+      fill="#1a1a1a"
+      font-size={outerRadius > 200 ? 15 : 11}
+      font-weight={isSelected ? 700 : 500}
+      font-family="'Outfit', sans-serif"
+    >
+      {label}
+    </text>
+  {/if}
 </g>
 
 <style>

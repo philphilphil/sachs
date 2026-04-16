@@ -11,6 +11,7 @@
     selectedKey: number | null;
     rotation: number;
     mode: Mode;
+    hideLabels: boolean;
     quizFeedback: { index: number; ring: 'major' | 'minor'; result: 'correct' | 'wrong' } | null;
     onselect: (index: number, ring: 'major' | 'minor') => void;
     ondragrotate: (angleDelta: number) => void;
@@ -21,6 +22,7 @@
     selectedKey,
     rotation,
     mode,
+    hideLabels = false,
     quizFeedback,
     onselect,
     ondragrotate,
@@ -171,6 +173,7 @@
         fill={majorFill(key.index)}
         isSelected={selectedKey === key.index}
         feedbackClass={feedbackClass(key.index, 'major')}
+        hideLabel={hideLabels}
         {rotation}
         onclick={() => onselect(key.index, 'major')}
         onkeydown={(e) => handleKeydown(key.index, 'major', e)}
@@ -189,6 +192,7 @@
         fill={minorFill(key.index)}
         isSelected={selectedKey === key.index}
         feedbackClass={feedbackClass(key.index, 'minor')}
+        hideLabel={hideLabels}
         {rotation}
         onclick={() => onselect(key.index, 'minor')}
         onkeydown={(e) => handleKeydown(key.index, 'minor', e)}
