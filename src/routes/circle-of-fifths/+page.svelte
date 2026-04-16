@@ -4,6 +4,7 @@
   import { KEYS } from '$lib/data/keys';
   import { shortestRotationTo } from '$lib/utils/circle-math';
   import { generateQuestion, type QuizQuestion } from '$lib/utils/quiz';
+  import { browser } from '$app/environment';
   import CircleOfFifths from '$lib/components/circle-of-fifths/CircleOfFifths.svelte';
   import DetailPanel from '$lib/components/circle-of-fifths/DetailPanel.svelte';
   import QuizPanel from '$lib/components/circle-of-fifths/QuizPanel.svelte';
@@ -15,7 +16,14 @@
   let mode = $state<Mode>('reference');
 
   // Rotation
-  const rotation = tweened(0, { duration: 400, easing: cubicOut });
+  const prefersReducedMotion = browser
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+  const rotation = tweened(0, {
+    duration: prefersReducedMotion ? 0 : 400,
+    easing: cubicOut
+  });
   let rawRotation = 0;
 
   // Quiz state
@@ -68,7 +76,10 @@
   }
 
   function handleDragEnd(velocity: number) {
-    // Apply momentum
+    if (prefersReducedMotion) {
+      rotation.set(rawRotation, { duration: 0 });
+      return;
+    }
     rawRotation += velocity;
     rotation.set(rawRotation, { duration: 500 });
   }
