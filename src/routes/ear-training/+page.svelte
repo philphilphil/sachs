@@ -6,6 +6,7 @@
   import ModeToggle, { type EarMode } from '$lib/components/ear-training/ModeToggle.svelte';
   import LevelIndicator from '$lib/components/ear-training/LevelIndicator.svelte';
   import DegreeGrid from '$lib/components/ear-training/DegreeGrid.svelte';
+  import MajorMinorButtons from '$lib/components/ear-training/MajorMinorButtons.svelte';
   import ReplayControls from '$lib/components/ear-training/ReplayControls.svelte';
   import RevealStaff from '$lib/components/ear-training/RevealStaff.svelte';
 
@@ -25,6 +26,9 @@
   import { unlockAudio } from '$lib/audio/sampler';
   import { playCadence } from '$lib/audio/cadence';
   import { playNote } from '$lib/audio/phrase';
+  import { generateKeyModeRound, type KeyModeRound } from '$lib/utils/ear-training/phrase-gen';
+  import { playPhrase } from '$lib/audio/phrase';
+  import type { KeyMode } from '$lib/utils/ear-training/music-theory';
 
   // ---- state ----
   let mode = $state<EarMode>('scale-degree');
@@ -44,6 +48,66 @@
   let streak = $state(0);
   let bestStreak = $state(0);
   const tracker = new ProgressionTracker();
+
+  // ---- Mode B state ----
+  let bRound = $state<KeyModeRound | null>(null);
+  let bAnswer = $state<{ mode: KeyMode; correct: boolean } | null>(null);
+  let bLocked = $state(false);
+  let bCorrect = $state(0);
+  let bTotal = $state(0);
+  let bStreak = $state(0);
+  let bBestStreak = $state(0);
+
+  async function nextBRound() {
+    bAnswer = null;
+    bLocked = false;
+    const prev = bRound?.tonic;
+    bRound = generateKeyModeRound(prev);
+    busy = true;
+    try {
+      await playPhrase(bRound.phrase);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function handleBReplay() {
+    if (!bRound) return;
+    busy = true;
+    try { await playPhrase(bRound.phrase); } finally { busy = false; }
+  }
+
+  function handleBAnswer(m: KeyMode) {
+    if (!bRound || bLocked) return;
+    const isCorrect = m === bRound.mode;
+    bAnswer = { mode: m, correct: isCorrect };
+    bTotal += 1;
+    if (isCorrect) {
+      bCorrect += 1;
+      bStreak += 1;
+      if (bStreak > bBestStreak) {
+        bBestStreak = bStreak;
+        if (browser) saveBestStreak('mode-b', bBestStreak);
+      }
+    } else {
+      bStreak = 0;
+    }
+    bLocked = true;
+  }
+
+  async function handleBNext() {
+    await nextBRound();
+  }
+
+  function handleBKey(e: KeyboardEvent) {
+    if (mode !== 'major-minor' || !audioUnlocked) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ') { e.preventDefault(); if (bLocked) handleBNext(); else handleBReplay(); return; }
+    if (e.key === 'Enter' && bLocked) { e.preventDefault(); handleBNext(); return; }
+    if (bLocked) return;
+    if (e.key.toLowerCase() === 'm') { e.preventDefault(); handleBAnswer('major'); }
+    if (e.key.toLowerCase() === 'n') { e.preventDefault(); handleBAnswer('minor'); }
+  }
 
   const levelDef = $derived(getLevel(level));
   const showFlats = $derived(
@@ -80,6 +144,7 @@
     await unlockAudio();
     audioUnlocked = true;
     samplesLoading = false;
+    bBestStreak = browser ? loadBestStreak('mode-b') : 0;
     await nextRound();
   }
 
@@ -221,7 +286,7 @@
 <svelte:head>
   <title>Ear Training — Hans Sach's Musikschule</title>
 </svelte:head>
-<svelte:window onkeydown={handleKey} />
+<svelte:window onkeydown={(e) => { handleKey(e); handleBKey(e); }} />
 
 <div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
@@ -232,11 +297,16 @@
           Ear <span class="serif italic font-normal">Training</span>
         </h1>
       </div>
-      <ScoreStrip {correct} {total} {streak} {bestStreak} />
+      <ScoreStrip
+        correct={mode === 'scale-degree' ? correct : bCorrect}
+        total={mode === 'scale-degree' ? total : bTotal}
+        streak={mode === 'scale-degree' ? streak : bStreak}
+        bestStreak={mode === 'scale-degree' ? bestStreak : bBestStreak}
+      />
     </div>
 
     <div class="flex items-center justify-between gap-4 mb-10">
-      <ModeToggle {mode} onchange={(m) => (mode = m)} />
+      <ModeToggle {mode} onchange={(m) => { mode = m; if (audioUnlocked && m === 'major-minor' && !bRound) nextBRound(); }} />
       {#if mode === 'scale-degree'}
         <LevelIndicator {level} onchange={handleLevelJump} />
       {/if}
@@ -312,7 +382,39 @@
         </p>
       </div>
     {:else}
-      <p class="text-center text-text-tertiary py-16">Mode B coming in Task 20.</p>
+      <div class="flex flex-col gap-8 items-center">
+        <p class="eyebrow text-center">Is this phrase major or minor?</p>
+
+        <MajorMinorButtons
+          locked={bLocked}
+          feedback={bAnswer}
+          correctMode={bAnswer && !bAnswer.correct ? bRound?.mode ?? null : null}
+          onanswer={handleBAnswer}
+        />
+
+        <ReplayControls busy={busy} onReplay={handleBReplay} />
+
+        {#if bLocked && bRound}
+          <div class="flex flex-col items-center gap-3">
+            <RevealStaff
+              pitches={bRound.phrase}
+              labels={[`Key of ${bRound.tonic} ${bRound.mode}`]}
+            />
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-text-primary text-bg-primary text-sm font-medium hover:opacity-90"
+              onclick={handleBNext}
+            >
+              Next — Enter
+            </button>
+          </div>
+        {/if}
+
+        <p class="text-center text-xs text-text-tertiary">
+          <kbd class="kbd">M</kbd> major · <kbd class="kbd">N</kbd> minor ·
+          <kbd class="kbd">Space</kbd> replay · <kbd class="kbd">Enter</kbd> next
+        </p>
+      </div>
     {/if}
   </div>
 </div>
