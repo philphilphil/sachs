@@ -21,7 +21,7 @@
   import StaffDisplay from '$lib/components/note-trainer/StaffDisplay.svelte';
   import AnswerGrid from '$lib/components/note-trainer/AnswerGrid.svelte';
   import KeyAnswerGrid from '$lib/components/note-trainer/KeyAnswerGrid.svelte';
-  import ScoreStrip from '$lib/components/note-trainer/ScoreStrip.svelte';
+  import ScoreStrip from '$lib/components/shared/ScoreStrip.svelte';
 
   let mode = $state<QuizMode>('note');
   let presetId = $state<PresetId>('violin-1st');

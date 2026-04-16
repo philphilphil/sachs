@@ -1,28 +1,474 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+
+  import ScoreStrip from '$lib/components/shared/ScoreStrip.svelte';
+  import ModeToggle, { type EarMode } from '$lib/components/ear-training/ModeToggle.svelte';
+  import LevelIndicator from '$lib/components/ear-training/LevelIndicator.svelte';
+  import DegreeGrid from '$lib/components/ear-training/DegreeGrid.svelte';
+  import MajorMinorButtons from '$lib/components/ear-training/MajorMinorButtons.svelte';
+  import ReplayControls from '$lib/components/ear-training/ReplayControls.svelte';
+  import RevealStaff from '$lib/components/ear-training/RevealStaff.svelte';
+  import CadenceIndicator, {
+    type PlayPhase
+  } from '$lib/components/ear-training/CadenceIndicator.svelte';
+
+  import {
+    generateScaleDegreeRound,
+    type ScaleDegreeRound
+  } from '$lib/utils/ear-training/round';
+  import { getLevel, type ScaleDegreeLevel } from '$lib/utils/ear-training/levels';
+  import type { ScaleDegree } from '$lib/utils/ear-training/music-theory';
+  import { degreeToPitch } from '$lib/utils/ear-training/music-theory';
+  import { ProgressionTracker } from '$lib/utils/ear-training/progression';
+  import {
+    loadLevel, saveLevel,
+    loadBestStreak, saveBestStreak
+  } from '$lib/utils/ear-training/storage';
+
+  import { unlockAudio } from '$lib/audio/sampler';
+  import { playCadence, CADENCE_CHORD_MS } from '$lib/audio/cadence';
+  import { playNote } from '$lib/audio/phrase';
+  import { generateKeyModeRound, type KeyModeRound } from '$lib/utils/ear-training/phrase-gen';
+  import { playPhrase } from '$lib/audio/phrase';
+  import type { KeyMode } from '$lib/utils/ear-training/music-theory';
+
+  // ---- state ----
+  let mode = $state<EarMode>('scale-degree');
+  let audioUnlocked = $state(false);
+  let samplesLoading = $state(false);
+
+  let level = $state<ScaleDegreeLevel>(1);
+  let round = $state<ScaleDegreeRound | null>(null);
+  let answers = $state<ScaleDegree[]>([]);  // user's sequence of answers this round
+  let locked = $state(false);                // true once fully answered (awaits Next)
+  let busy = $state(false);                  // playback in flight
+  let feedbackLast = $state<{ degree: ScaleDegree; correct: boolean } | null>(null);
+  let levelUpToast = $state(false);
+  let phase = $state<PlayPhase>('idle');
+
+  let correct = $state(0);
+  let total = $state(0);
+  let streak = $state(0);
+  let bestStreak = $state(0);
+  const tracker = new ProgressionTracker();
+
+  // ---- Mode B state ----
+  let bRound = $state<KeyModeRound | null>(null);
+  let bAnswer = $state<{ mode: KeyMode; correct: boolean } | null>(null);
+  let bLocked = $state(false);
+  let bCorrect = $state(0);
+  let bTotal = $state(0);
+  let bStreak = $state(0);
+  let bBestStreak = $state(0);
+
+  async function nextBRound() {
+    bAnswer = null;
+    bLocked = false;
+    const prev = bRound?.tonic;
+    bRound = generateKeyModeRound(prev);
+    busy = true;
+    try {
+      await playPhrase(bRound.phrase);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function handleBReplay() {
+    if (!bRound) return;
+    busy = true;
+    try { await playPhrase(bRound.phrase); } finally { busy = false; }
+  }
+
+  function handleBAnswer(m: KeyMode) {
+    if (!bRound || bLocked) return;
+    const isCorrect = m === bRound.mode;
+    bAnswer = { mode: m, correct: isCorrect };
+    bTotal += 1;
+    if (isCorrect) {
+      bCorrect += 1;
+      bStreak += 1;
+      if (bStreak > bBestStreak) {
+        bBestStreak = bStreak;
+        if (browser) saveBestStreak('mode-b', bBestStreak);
+      }
+    } else {
+      bStreak = 0;
+    }
+    bLocked = true;
+  }
+
+  async function handleBNext() {
+    await nextBRound();
+  }
+
+  function handleBKey(e: KeyboardEvent) {
+    if (mode !== 'major-minor' || !audioUnlocked) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ') { e.preventDefault(); if (bLocked) handleBNext(); else handleBReplay(); return; }
+    if (e.key === 'Enter' && bLocked) { e.preventDefault(); handleBNext(); return; }
+    if (bLocked) return;
+    if (e.key.toLowerCase() === 'm') { e.preventDefault(); handleBAnswer('major'); }
+    if (e.key.toLowerCase() === 'n') { e.preventDefault(); handleBAnswer('minor'); }
+  }
+
+  const levelDef = $derived(getLevel(level));
+  const activeDegrees = $derived.by<ScaleDegree[]>(() => {
+    const m = round?.mode ?? (levelDef.mode === 'minor' ? 'minor' : 'major');
+    return (m === 'major' ? levelDef.degreesMajor : levelDef.degreesMinor) ?? [];
+  });
+
+  const expectedDegrees = $derived<ScaleDegree[]>(round?.targets ?? []);
+  const currentIndex = $derived(answers.length);
+
+  const revealLabels = $derived<string[]>(
+    round
+      ? round.targets.map((d) =>
+          d === 'b3' ? '♭3̂' : d === 'b6' ? '♭6̂' : d === 'b7' ? '♭7̂' : `${d}̂`
+        )
+      : []
+  );
+  const revealTonic = $derived(
+    round ? degreeToPitch(round.tonic, round.mode, 1, 3) : null
+  );
+
+  // ---- lifecycle ----
+  onMount(() => {
+    if (!browser) return;
+    level = loadLevel();
+    bestStreak = loadBestStreak('mode-a', level);
+  });
+
+  // ---- audio gate ----
+  async function handleStart() {
+    if (audioUnlocked) return;
+    samplesLoading = true;
+    await unlockAudio();
+    audioUnlocked = true;
+    samplesLoading = false;
+    bBestStreak = browser ? loadBestStreak('mode-b') : 0;
+    await nextRound();
+  }
+
+  // ---- round flow ----
+  async function nextRound() {
+    feedbackLast = null;
+    locked = false;
+    answers = [];
+    phase = 'idle';
+    const prev = round?.tonic;
+    round = generateScaleDegreeRound(level, prev);
+    await playRound();
+  }
+
+  async function playRound() {
+    if (!round) return;
+    busy = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    try {
+      phase = 'cadence-1';
+      timers.push(setTimeout(() => (phase = 'cadence-2'), CADENCE_CHORD_MS));
+      timers.push(setTimeout(() => (phase = 'cadence-3'), CADENCE_CHORD_MS * 2));
+      timers.push(setTimeout(() => (phase = 'cadence-4'), CADENCE_CHORD_MS * 3));
+      await playCadence(round.tonic, round.mode);
+      phase = 'target';
+      for (const pitch of round.targetPitches) {
+        await playNote(pitch);
+      }
+      phase = 'idle';
+    } finally {
+      timers.forEach(clearTimeout);
+      busy = false;
+    }
+  }
+
+  async function handleReplay() {
+    if (!round) return;
+    await playRound();
+  }
+
+  async function handlePlayTarget() {
+    if (!round) return;
+    busy = true;
+    try {
+      phase = 'target';
+      for (const pitch of round.targetPitches) await playNote(pitch);
+      phase = 'idle';
+    } finally {
+      busy = false;
+    }
+  }
+
+  // ---- answer handling ----
+  function handleAnswer(degree: ScaleDegree) {
+    if (locked || !round) return;
+    const expected = expectedDegrees[currentIndex];
+    const isCorrect = degree === expected;
+    feedbackLast = { degree, correct: isCorrect };
+
+    if (!isCorrect) {
+      answers = [...answers, degree];
+      recordRound(false);
+      locked = true;
+      return;
+    }
+
+    const newAnswers = [...answers, degree];
+    answers = newAnswers;
+
+    if (newAnswers.length === expectedDegrees.length) {
+      recordRound(true);
+      locked = true;
+    } else {
+      setTimeout(() => {
+        feedbackLast = null;
+      }, 350);
+    }
+  }
+
+  function recordRound(isCorrect: boolean) {
+    total += 1;
+    if (isCorrect) {
+      correct += 1;
+      streak += 1;
+      if (streak > bestStreak) {
+        bestStreak = streak;
+        if (browser) saveBestStreak('mode-a', bestStreak, level);
+      }
+    } else {
+      streak = 0;
+    }
+    tracker.record(isCorrect);
+  }
+
+  async function handleNext() {
+    if (tracker.shouldAdvance() && level < 5) {
+      level = (level + 1) as ScaleDegreeLevel;
+      if (browser) saveLevel(level);
+      tracker.reset();
+      streak = 0;
+      bestStreak = browser ? loadBestStreak('mode-a', level) : 0;
+      levelUpToast = true;
+      setTimeout(() => (levelUpToast = false), 1600);
+    }
+    await nextRound();
+  }
+
+  function handleLevelJump(newLevel: ScaleDegreeLevel) {
+    if (newLevel <= level) return;
+    level = newLevel;
+    if (browser) saveLevel(level);
+    tracker.reset();
+    correct = 0;
+    total = 0;
+    streak = 0;
+    bestStreak = browser ? loadBestStreak('mode-a', level) : 0;
+    nextRound();
+  }
+
+  function handleLevelReset() {
+    if (level === 1) return;
+    level = 1;
+    if (browser) saveLevel(level);
+    tracker.reset();
+    correct = 0;
+    total = 0;
+    streak = 0;
+    bestStreak = browser ? loadBestStreak('mode-a', level) : 0;
+    nextRound();
+  }
+
+  // ---- keyboard ----
+  function handleKey(e: KeyboardEvent) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (mode !== 'scale-degree') return;
+    if (!audioUnlocked) return;
+
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (locked) handleNext(); else handleReplay();
+      return;
+    }
+    if (e.key === 'Enter' && locked) {
+      e.preventDefault();
+      handleNext();
+      return;
+    }
+
+    if (locked) return;
+    const digit = parseInt(e.key, 10);
+    if (!Number.isInteger(digit) || digit < 1 || digit > 7) return;
+    if (e.shiftKey && (digit === 3 || digit === 6 || digit === 7)) {
+      const flat = `b${digit}` as ScaleDegree;
+      if (!activeDegrees.includes(flat)) return;
+      e.preventDefault();
+      handleAnswer(flat);
+    } else if (!e.shiftKey) {
+      const natural = digit as ScaleDegree;
+      if (!activeDegrees.includes(natural)) return;
+      e.preventDefault();
+      handleAnswer(natural);
+    }
+  }
+</script>
+
 <svelte:head>
   <title>Ear Training — Hans Sach's Musikschule</title>
 </svelte:head>
+<svelte:window onkeydown={(e) => { handleKey(e); handleBKey(e); }} />
 
-<div class="max-w-2xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+<div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
-    <p class="eyebrow mb-3">Chapter III</p>
-    <h1
-      class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight"
-    >
-      Ear <span class="serif italic font-normal">Training</span>
-    </h1>
-    <p class="mt-4 text-text-secondary leading-relaxed max-w-xl">
-      A study in interval recognition and key identification by ear. Coming in a future
-      chapter — once the reading practice is well under way.
-    </p>
+    <div class="flex items-start justify-between gap-6 mb-8">
+      <div>
+        <p class="eyebrow mb-2">Chapter III</p>
+        <h1 class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight">
+          Ear <span class="serif italic font-normal">Training</span>
+        </h1>
+      </div>
+      <ScoreStrip
+        correct={mode === 'scale-degree' ? correct : bCorrect}
+        total={mode === 'scale-degree' ? total : bTotal}
+        streak={mode === 'scale-degree' ? streak : bStreak}
+        bestStreak={mode === 'scale-degree' ? bestStreak : bBestStreak}
+      />
+    </div>
 
-    <hr class="hairline my-8" />
+    <div class="flex items-center justify-between gap-4 mb-10">
+      <ModeToggle {mode} onchange={(m) => { mode = m; if (audioUnlocked && m === 'major-minor' && !bRound) nextBRound(); }} />
+      {#if mode === 'scale-degree'}
+        <LevelIndicator
+          {level}
+          onchange={handleLevelJump}
+          onreset={handleLevelReset}
+        />
+      {/if}
+    </div>
 
-    <p class="eyebrow">Planned</p>
-    <ul class="mt-3 text-sm text-text-secondary space-y-2 list-none">
-      <li class="flex gap-3"><span class="text-text-tertiary tabular-nums">A.</span>
-        Single-note recognition with a reference tonic.</li>
-      <li class="flex gap-3"><span class="text-text-tertiary tabular-nums">B.</span>
-        Key identification from a short melodic fragment.</li>
-    </ul>
+    {#if !audioUnlocked}
+      <div class="flex flex-col items-center gap-4 py-16">
+        <p class="text-text-secondary">
+          Audio practice needs a single click to begin.
+        </p>
+        <button
+          type="button"
+          class="px-6 py-3 rounded-lg bg-bg-card border border-border-subtle text-text-primary hover:bg-bg-hover"
+          onclick={handleStart}
+          disabled={samplesLoading}
+        >
+          {samplesLoading ? 'Loading piano…' : 'Start'}
+        </button>
+      </div>
+    {:else if mode === 'scale-degree'}
+      <div class="flex flex-col gap-8 items-center">
+        {#if levelUpToast}
+          <div class="px-3 py-1 rounded-full bg-bg-card text-text-primary text-sm border border-border-subtle">
+            Level up! → {level}
+          </div>
+        {/if}
+
+        <div class="flex flex-col items-center gap-3">
+          <p class="eyebrow text-center">
+            {#if round}
+              Key of {round.tonic}{round.mode === 'minor' ? ' minor' : ' major'}
+              {#if expectedDegrees.length > 1}· {currentIndex + 1} of {expectedDegrees.length}{/if}
+            {:else}
+              …
+            {/if}
+          </p>
+          {#if round}
+            <CadenceIndicator mode={round.mode} {phase} />
+          {/if}
+        </div>
+
+        <DegreeGrid
+          activeDegrees={activeDegrees}
+          locked={locked && currentIndex >= expectedDegrees.length}
+          feedback={feedbackLast}
+          correctDegree={!feedbackLast?.correct && locked ? expectedDegrees[currentIndex] ?? null : null}
+          onanswer={handleAnswer}
+        />
+
+        <ReplayControls
+          busy={busy}
+          onReplay={handleReplay}
+          onPlayTarget={handlePlayTarget}
+        />
+
+        {#if locked && round}
+          <div class="flex flex-col items-center gap-3">
+            <RevealStaff
+              pitches={round.targetPitches}
+              labels={revealLabels}
+              showTonic={revealTonic}
+            />
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg border border-[color:var(--color-violet)] bg-[color:var(--color-violet-light)] text-[color:var(--color-violet-deep)] text-sm font-medium transition-all duration-200 hover:bg-[color:var(--color-violet)] hover:text-white"
+              onclick={handleNext}
+            >
+              Next — Enter
+            </button>
+          </div>
+        {/if}
+
+        <p class="text-center text-xs text-text-tertiary">
+          Press a degree
+          {#if activeDegrees.some((d) => typeof d === 'string')}· <kbd class="kbd">Shift</kbd> + number for ♭{/if}
+          · <kbd class="kbd">Space</kbd> replay
+          · <kbd class="kbd">Enter</kbd> next
+        </p>
+      </div>
+    {:else}
+      <div class="flex flex-col gap-8 items-center">
+        <p class="eyebrow text-center">Is this phrase major or minor?</p>
+
+        <MajorMinorButtons
+          locked={bLocked}
+          feedback={bAnswer}
+          correctMode={bAnswer && !bAnswer.correct ? bRound?.mode ?? null : null}
+          onanswer={handleBAnswer}
+        />
+
+        <ReplayControls busy={busy} onReplay={handleBReplay} />
+
+        {#if bLocked && bRound}
+          <div class="flex flex-col items-center gap-3">
+            <RevealStaff
+              pitches={bRound.phrase}
+              labels={[`Key of ${bRound.tonic} ${bRound.mode}`]}
+            />
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-text-primary text-bg-primary text-sm font-medium hover:opacity-90"
+              onclick={handleBNext}
+            >
+              Next — Enter
+            </button>
+          </div>
+        {/if}
+
+        <p class="text-center text-xs text-text-tertiary">
+          <kbd class="kbd">M</kbd> major · <kbd class="kbd">N</kbd> minor ·
+          <kbd class="kbd">Space</kbd> replay · <kbd class="kbd">Enter</kbd> next
+        </p>
+      </div>
+    {/if}
   </div>
 </div>
+
+<style>
+  :global(.kbd) {
+    display: inline-block;
+    padding: 1px 6px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: inset 0 -1px 0 var(--color-border);
+  }
+</style>
