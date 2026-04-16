@@ -11,6 +11,15 @@
       rel="stylesheet"
     />
     <title>Hans Sach's Musikschule</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body>

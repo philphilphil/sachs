@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onNavigate } from '$app/navigation';
   import Nav from '$lib/components/Nav.svelte';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import '../app.css';
 
   let { children } = $props();
@@ -22,4 +23,5 @@
   <main>
     {@render children()}
   </main>
+  <ThemeToggle />
 </div>

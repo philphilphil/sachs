@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { KeySignature, StaffNote } from '$lib/data/notes';
+  import { theme } from '$lib/theme.svelte';
 
   interface Props {
     keySignature: KeySignature;
@@ -22,6 +23,12 @@
       const factory = new Factory({
         renderer: { elementId: container, width: 560, height: 180 }
       });
+
+      const ctx = factory.getContext();
+      const color =
+        getComputedStyle(container).getPropertyValue('--color-text-primary').trim() || '#000';
+      ctx.setFillStyle(color);
+      ctx.setStrokeStyle(color);
 
       const system = factory.System({
         x: 10,
@@ -65,9 +72,9 @@
   }
 
   $effect(() => {
-    // Re-run whenever keySignature or note changes.
     void keySignature;
     void note;
+    void theme.isDark;
     render();
   });
 </script>

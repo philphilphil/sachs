@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'EB Garamond', ui-serif, Georgia, 'Cormorant Garamond', serif;
@@ -39,6 +41,42 @@
   --color-error-light: #fef2f2;
 }
 
+:where(.dark) {
+  --color-bg: #0f0e0c;
+  --color-bg-card: #1a1917;
+  --color-bg-hover: #242220;
+  --color-paper: #1c1814;
+  --color-border: #2d2c29;
+  --color-border-hover: #44433f;
+  --color-border-subtle: #211f1d;
+
+  --color-text-primary: #f0efeb;
+  --color-text-secondary: #a3a29d;
+  --color-text-tertiary: #6c6b67;
+  --color-ink: #ffffff;
+
+  --color-accent: #ff8063;
+  --color-accent-light: #3a1d15;
+  --color-accent-dark: #ff9d85;
+
+  --color-teal: #2dd4bf;
+  --color-teal-light: #0f2e2b;
+  --color-violet: #a78bfa;
+  --color-violet-light: #241e38;
+  --color-violet-deep: #8b5cf6;
+  --color-cyan: #22d3ee;
+  --color-cyan-light: #0e2931;
+  --color-rose: #fb7185;
+  --color-rose-light: #2d141a;
+  --color-magenta: #e879f9;
+  --color-magenta-light: #251530;
+
+  --color-success: #34d399;
+  --color-success-light: #0f2921;
+  --color-error: #f87171;
+  --color-error-light: #2a1515;
+}
+
 html {
   background-color: var(--color-bg);
   scrollbar-gutter: stable;
@@ -54,6 +92,13 @@ body {
 ::selection {
   background-color: var(--color-accent-light);
   color: var(--color-accent-dark);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 /* Editorial eyebrow label — small uppercase letterspaced */

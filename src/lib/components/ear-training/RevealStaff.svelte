@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import type { Pitch } from '$lib/utils/ear-training/music-theory';
+  import { theme } from '$lib/theme.svelte';
 
   interface Props {
     pitches: Pitch[];
@@ -37,6 +38,12 @@
       const factory = new Factory({
         renderer: { elementId: container, width: 360, height: 140 }
       });
+
+      const ctx = factory.getContext();
+      const color =
+        getComputedStyle(container).getPropertyValue('--color-text-primary').trim() || '#000';
+      ctx.setFillStyle(color);
+      ctx.setStrokeStyle(color);
 
       const system = factory.System({
         x: 10,
@@ -75,10 +82,10 @@
   }
 
   $effect(() => {
-    // Re-run whenever any input changes.
     void pitches;
     void labels;
     void showTonic;
+    void theme.isDark;
     render();
   });
 
