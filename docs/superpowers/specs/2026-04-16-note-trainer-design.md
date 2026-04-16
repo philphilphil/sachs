@@ -86,7 +86,7 @@ Preset definitions:
 |---|---|---|---|
 | `staff-basics` | Staff basics | E4, F4, G4, A4, B4, C5, D5, E5, F5 (9 on-staff letter positions) | C major |
 | `violin-1st` | Violin 1st position | G3–B5 (17 diatonic letter positions; accidentals come from the signature, not drawn per-note) | C, G, D, A |
-| `violin-3rd` | Violin 3rd position | G3–E6 (23 diatonic letter positions) | C, G, D, A, F, B♭, E♭ |
+| `violin-3rd` | Violin 3rd position | G3–E6 (20 diatonic letter positions) | C, G, D, A, F, B♭, E♭ |
 | `piano` | Piano | C{min}–B{max} (all 7 letter positions per octave in the selected range) | all 12 major |
 
 The 12 major key signatures follow the standard order of sharps (F♯ C♯ G♯ D♯ A♯ E♯ B♯) and flats (B♭ E♭ A♭ D♭ G♭ C♭ F♭).
