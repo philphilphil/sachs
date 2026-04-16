@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
-  import { KEYS } from '$lib/data/keys';
+  import { type Mode } from '$lib/data/keys';
   import { shortestRotationTo } from '$lib/utils/circle-math';
   import { generateQuestion, type QuizQuestion } from '$lib/utils/quiz';
   import { browser } from '$app/environment';
@@ -9,8 +9,6 @@
   import DetailPanel from '$lib/components/circle-of-fifths/DetailPanel.svelte';
   import QuizPanel from '$lib/components/circle-of-fifths/QuizPanel.svelte';
   import ModeToggle from '$lib/components/circle-of-fifths/ModeToggle.svelte';
-
-  type Mode = 'explore' | 'reference' | 'learn';
 
   let selectedKey = $state<number | null>(null);
   let mode = $state<Mode>('reference');

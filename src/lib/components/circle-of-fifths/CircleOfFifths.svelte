@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { KEYS } from '$lib/data/keys';
+  import { KEYS, type Mode } from '$lib/data/keys';
   import {
     harmonicDistance,
     distanceColor,
@@ -7,8 +7,6 @@
   } from '$lib/utils/circle-math';
   import Wedge from './Wedge.svelte';
   import ConnectingArcs from './ConnectingArcs.svelte';
-
-  type Mode = 'explore' | 'reference' | 'learn';
 
   interface Props {
     selectedKey: number | null;

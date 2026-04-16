@@ -1,3 +1,5 @@
+export type Mode = 'explore' | 'reference' | 'learn';
+
 export interface KeyData {
   name: string;
   minor: string;

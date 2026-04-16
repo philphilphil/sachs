@@ -1,5 +1,5 @@
 <script lang="ts">
-  type Mode = 'explore' | 'reference' | 'learn';
+  import { type Mode } from '$lib/data/keys';
 
   interface Props {
     mode: Mode;

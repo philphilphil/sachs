@@ -31,8 +31,6 @@
     onkeydown
   }: Props = $props();
 
-  const SLICE_DEG = 360 / 12;
-
   let path = $derived(wedgePath(cx, cy, innerRadius, outerRadius, index));
 
   let labelRadius = $derived((innerRadius + outerRadius) / 2);
