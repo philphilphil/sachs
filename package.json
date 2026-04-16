@@ -22,5 +22,8 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.4"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "vexflow": "^4.2.5"
+  }
 }

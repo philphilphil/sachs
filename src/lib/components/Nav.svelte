@@ -6,24 +6,27 @@
 
   const links = [
     { href: '/circle-of-fifths', label: 'Circle of Fifths' },
-    { href: '/note-trainer', label: 'Note Trainer' },
+    { href: '/note-trainer', label: 'Note Reading' },
     { href: '/ear-training', label: 'Ear Training' },
     { href: '/finger-patterns', label: 'Finger Patterns' }
   ];
 </script>
 
-<nav class="sticky top-0 z-50 bg-bg/80 backdrop-blur-xl border-b border-border">
+<nav class="sticky top-0 z-50 bg-bg/85 backdrop-blur-xl border-b border-border-subtle">
   <div class="max-w-5xl mx-auto px-5 sm:px-8">
-    <div class="flex items-center justify-between h-14">
-      <!-- Logo -->
-      <a href="{base}/" class="flex items-center gap-2.5 group">
-        <div class="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+    <div class="flex items-center justify-between h-16">
+      <!-- Brand -->
+      <a href="{base}/" class="flex items-baseline gap-2.5 group">
+        <div
+          class="w-7 h-7 rounded-md bg-accent flex items-center justify-center self-center transition-transform duration-200 group-hover:rotate-[-4deg]"
+        >
           <svg viewBox="0 0 16 16" class="w-4 h-4 text-white" fill="currentColor">
             <path d="M11 1v10.268A2 2 0 1 1 9 9.268V3h0V1h2zM5 5v6.268A2 2 0 1 1 3 9.268V7h0V5h2z" />
           </svg>
         </div>
-        <span class="text-[15px] font-semibold text-text-primary">
-          Hans Sach's Musikschule
+        <span class="flex items-baseline gap-1.5">
+          <span class="text-[15px] font-semibold text-text-primary tracking-tight">Hans Sach's</span>
+          <span class="serif italic text-[17px] text-text-primary/90 hidden sm:inline">Musikschule</span>
         </span>
       </a>
 
@@ -44,17 +47,18 @@
       </button>
 
       <!-- Desktop nav -->
-      <div class="hidden md:flex items-center gap-0.5">
+      <div class="hidden md:flex items-center gap-1">
         {#each links as link}
           {@const isActive = page.url.pathname === base + link.href}
           <a
             href="{base}{link.href}"
-            class="px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors
-              {isActive
-              ? 'text-accent bg-accent-light'
-              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}"
+            class="relative px-3 py-5 text-[13px] font-medium transition-colors duration-200
+              {isActive ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'}"
           >
             {link.label}
+            {#if isActive}
+              <span class="absolute left-3 right-3 -bottom-px h-[2px] bg-accent"></span>
+            {/if}
           </a>
         {/each}
       </div>

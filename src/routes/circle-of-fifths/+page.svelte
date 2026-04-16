@@ -131,37 +131,22 @@
 
 <svelte:window onkeydown={handleKeyboardNav} />
 
-<div class="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+<div class="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
     <!-- Header -->
-    <div class="flex items-center gap-3 mb-6">
-      <div
-        class="w-9 h-9 rounded-lg flex items-center justify-center"
-        style="background-color: #f0fdfa; color: #0d9488;"
-      >
-        <svg
-          viewBox="0 0 20 20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          class="w-5 h-5"
-        >
-          <circle cx="10" cy="10" r="7.5" />
-          <circle cx="10" cy="10" r="4" />
-          <circle cx="10" cy="2.5" r="1" fill="currentColor" stroke="none" />
-          <circle cx="17.5" cy="10" r="1" fill="currentColor" stroke="none" />
-          <circle cx="10" cy="17.5" r="1" fill="currentColor" stroke="none" />
-          <circle cx="2.5" cy="10" r="1" fill="currentColor" stroke="none" />
-        </svg>
+    <div class="flex items-start justify-between gap-6 mb-8">
+      <div>
+        <p class="eyebrow mb-2">Chapter I</p>
+        <h1 class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight">
+          Circle <span class="text-text-tertiary font-normal">of</span>
+          <span class="serif italic font-normal">Fifths</span>
+        </h1>
       </div>
-      <h1 class="text-2xl font-bold tracking-tight text-text-primary">
-        Circle of Fifths
-      </h1>
-    </div>
 
-    <!-- Mode Toggle -->
-    <div class="flex justify-center mb-6">
-      <ModeToggle {mode} onchange={handleModeChange} />
+      <!-- Mode Toggle -->
+      <div class="shrink-0 pt-4">
+        <ModeToggle {mode} onchange={handleModeChange} />
+      </div>
     </div>
 
     <!-- Main layout: circle + panel -->
