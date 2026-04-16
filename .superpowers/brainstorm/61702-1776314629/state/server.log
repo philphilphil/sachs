@@ -1,0 +1,4 @@
+{"type":"server-started","port":49591,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:49591","screen_dir":"/Users/phil/Projects/sachs/.superpowers/brainstorm/61702-1776314629/content","state_dir":"/Users/phil/Projects/sachs/.superpowers/brainstorm/61702-1776314629/state"}
+{"type":"screen-added","file":"/Users/phil/Projects/sachs/.superpowers/brainstorm/61702-1776314629/content/circle-layout.html"}
+{"type":"screen-added","file":"/Users/phil/Projects/sachs/.superpowers/brainstorm/61702-1776314629/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}
