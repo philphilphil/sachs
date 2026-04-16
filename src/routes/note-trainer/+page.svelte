@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import {
     PRESETS,
     buildPianoPreset,
     type Preset,
     type PresetId,
-    type KeySignature,
-    type StaffNote
+    type KeySignature
   } from '$lib/data/notes';
   import {
     generateNoteQuestion,
@@ -117,10 +117,8 @@
     nextQuestion();
   }
 
-  $effect(() => {
-    if (browser && noteQuestion === null && keyQuestion === null) {
-      resetSession();
-    }
+  onMount(() => {
+    resetSession();
   });
 </script>
 
