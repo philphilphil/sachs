@@ -64,6 +64,18 @@
       } else {
         factory.draw();
       }
+
+      const svg = container.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('viewBox', '0 0 560 180');
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.width = '100%';
+        svg.style.height = 'auto';
+        svg.style.maxWidth = '560px';
+        svg.style.display = 'block';
+      }
     } catch (err) {
       console.error('VexFlow render failed', err);
       container.innerHTML =
@@ -80,5 +92,5 @@
 </script>
 
 <div class="flex justify-center min-h-[180px] w-full">
-  <div bind:this={container} class="inline-block min-h-[180px]"></div>
+  <div bind:this={container} class="min-h-[180px] w-full max-w-[560px]"></div>
 </div>

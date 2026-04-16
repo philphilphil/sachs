@@ -189,8 +189,8 @@
 
 <div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
-    <!-- Top strip: title left, score right -->
-    <div class="flex items-start justify-between gap-6 mb-10">
+    <!-- Top strip: title left, score right (stacks on mobile) -->
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6 mb-10">
       <div>
         <p class="eyebrow mb-2">Chapter II</p>
         <h1 class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight">

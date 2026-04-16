@@ -50,19 +50,19 @@
   const disabled = $derived(feedback !== null);
 </script>
 
-<div class="flex justify-center gap-1.5 sm:gap-2">
+<div class="grid grid-cols-4 gap-2 max-w-xs mx-auto sm:flex sm:justify-center sm:gap-2 sm:max-w-none">
   {#each LETTERS as letter}
     {@const sharpAnswer = `${letter}♯`}
     {@const flatAnswer = `${letter}♭`}
     {@const sharpState = stateFor(sharpAnswer)}
     {@const letterState = stateFor(letter)}
     {@const flatState = stateFor(flatAnswer)}
-    <div class="relative flex flex-col items-center gap-1.5">
+    <div class="relative flex flex-col items-stretch sm:items-center gap-1.5">
       {#if showAccidentals}
         <button
           aria-label={sharpAnswer}
           {disabled}
-          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(sharpState)}"
+          class="w-full sm:w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(sharpState)}"
           onclick={() => onanswer(sharpAnswer)}
         >
           ♯
@@ -71,7 +71,7 @@
       <button
         aria-label={letter}
         {disabled}
-        class="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg border bg-transparent text-lg serif font-medium transition-all duration-200 disabled:cursor-not-allowed {letterClass(letterState)}"
+        class="relative w-full h-14 sm:w-14 sm:h-14 rounded-lg border bg-transparent text-lg serif font-medium transition-all duration-200 disabled:cursor-not-allowed {letterClass(letterState)}"
         onclick={() => onanswer(letter)}
       >
         {letter}
@@ -96,7 +96,7 @@
         <button
           aria-label={flatAnswer}
           {disabled}
-          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(flatState)}"
+          class="w-full sm:w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(flatState)}"
           onclick={() => onanswer(flatAnswer)}
         >
           ♭
