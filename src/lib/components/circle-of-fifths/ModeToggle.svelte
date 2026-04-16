@@ -10,7 +10,6 @@
 
   const modes: { value: Mode; label: string }[] = [
     { value: 'explore', label: 'Explore' },
-    { value: 'reference', label: 'Reference' },
     { value: 'learn', label: 'Learn' }
   ];
 </script>

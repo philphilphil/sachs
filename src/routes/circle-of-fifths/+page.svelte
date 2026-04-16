@@ -11,7 +11,7 @@
   import ModeToggle from '$lib/components/circle-of-fifths/ModeToggle.svelte';
 
   let selectedKey = $state<number | null>(null);
-  let mode = $state<Mode>('reference');
+  let mode = $state<Mode>('explore');
 
   // Rotation
   const prefersReducedMotion = browser
@@ -35,6 +35,13 @@
   } | null>(null);
   let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  function rotateToKey(index: number) {
+    const targetDeg = -index * 30;
+    const delta = shortestRotationTo(rawRotation % 360, targetDeg % 360);
+    rawRotation += delta;
+    rotation.set(rawRotation);
+  }
+
   function handleSelect(index: number, ring: 'major' | 'minor') {
     if (mode === 'learn') {
       handleQuizAnswer(index, ring);
@@ -48,24 +55,12 @@
     }
 
     selectedKey = index;
-
-    if (mode === 'explore') {
-      // Rotate to put selected key at top
-      const targetDeg = -index * 30;
-      const delta = shortestRotationTo(rawRotation % 360, targetDeg % 360);
-      rawRotation += delta;
-      rotation.set(rawRotation);
-    }
+    rotateToKey(index);
   }
 
   function handleNavigate(index: number) {
     selectedKey = index;
-    if (mode === 'explore') {
-      const targetDeg = -index * 30;
-      const delta = shortestRotationTo(rawRotation % 360, targetDeg % 360);
-      rawRotation += delta;
-      rotation.set(rawRotation);
-    }
+    rotateToKey(index);
   }
 
   function handleDragRotate(delta: number) {
@@ -91,11 +86,6 @@
       quizScore = 0;
       quizTotal = 0;
       currentQuestion = generateQuestion();
-    } else if (newMode === 'reference') {
-      // Reset rotation for static reference view
-      rawRotation = 0;
-      rotation.set(0);
-      currentQuestion = null;
     } else {
       currentQuestion = null;
     }

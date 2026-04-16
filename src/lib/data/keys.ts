@@ -1,4 +1,4 @@
-export type Mode = 'explore' | 'reference' | 'learn';
+export type Mode = 'explore' | 'learn';
 
 export interface KeyData {
   name: string;
