@@ -114,11 +114,10 @@
   }
 
   const levelDef = $derived(getLevel(level));
-  const showFlats = $derived(
-    levelDef.mode === 'minor' ||
-    levelDef.mode === 'mixed' ||
-    (round?.mode === 'minor')
-  );
+  const activeDegrees = $derived.by<ScaleDegree[]>(() => {
+    const m = round?.mode ?? (levelDef.mode === 'minor' ? 'minor' : 'major');
+    return (m === 'major' ? levelDef.degreesMajor : levelDef.degreesMinor) ?? [];
+  });
 
   const expectedDegrees = $derived<ScaleDegree[]>(round?.targets ?? []);
   const currentIndex = $derived(answers.length);
@@ -300,12 +299,16 @@
     if (locked) return;
     const digit = parseInt(e.key, 10);
     if (!Number.isInteger(digit) || digit < 1 || digit > 7) return;
-    if (e.shiftKey && (digit === 3 || digit === 6 || digit === 7) && showFlats) {
+    if (e.shiftKey && (digit === 3 || digit === 6 || digit === 7)) {
+      const flat = `b${digit}` as ScaleDegree;
+      if (!activeDegrees.includes(flat)) return;
       e.preventDefault();
-      handleAnswer((`b${digit}` as ScaleDegree));
+      handleAnswer(flat);
     } else if (!e.shiftKey) {
+      const natural = digit as ScaleDegree;
+      if (!activeDegrees.includes(natural)) return;
       e.preventDefault();
-      handleAnswer(digit as ScaleDegree);
+      handleAnswer(natural);
     }
   }
 </script>
@@ -380,7 +383,7 @@
         </div>
 
         <DegreeGrid
-          showFlats={showFlats}
+          activeDegrees={activeDegrees}
           locked={locked && currentIndex >= expectedDegrees.length}
           feedback={feedbackLast}
           correctDegree={!feedbackLast?.correct && locked ? expectedDegrees[currentIndex] ?? null : null}
@@ -411,8 +414,8 @@
         {/if}
 
         <p class="text-center text-xs text-text-tertiary">
-          Press <kbd class="kbd">1</kbd>…<kbd class="kbd">7</kbd>
-          {#if showFlats}· <kbd class="kbd">Shift</kbd> + number for ♭{/if}
+          Press a degree
+          {#if activeDegrees.some((d) => typeof d === 'string')}· <kbd class="kbd">Shift</kbd> + number for ♭{/if}
           · <kbd class="kbd">Space</kbd> replay
           · <kbd class="kbd">Enter</kbd> next
         </p>

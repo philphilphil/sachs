@@ -2,14 +2,14 @@
   import type { ScaleDegree } from '$lib/utils/ear-training/music-theory';
 
   interface Props {
-    showFlats: boolean;
+    activeDegrees: ScaleDegree[];
     locked: boolean;
     feedback: { degree: ScaleDegree; correct: boolean } | null;
     correctDegree: ScaleDegree | null;
     onanswer: (degree: ScaleDegree) => void;
   }
 
-  let { showFlats, locked, feedback, correctDegree, onanswer }: Props = $props();
+  let { activeDegrees, locked, feedback, correctDegree, onanswer }: Props = $props();
 
   interface Button {
     degree: ScaleDegree;
@@ -31,6 +31,9 @@
     { degree: 'b6', label: '♭6̂' },
     { degree: 'b7', label: '♭7̂' }
   ];
+
+  const activeNaturals = $derived(NATURALS.filter((b) => activeDegrees.includes(b.degree)));
+  const activeFlats = $derived(FLATS.filter((b) => activeDegrees.includes(b.degree)));
 
   type ButtonState = 'idle' | 'right' | 'wrong' | 'revealed';
 
@@ -56,23 +59,25 @@
 </script>
 
 <div class="flex flex-col items-center gap-3">
-  <div class="flex gap-2">
-    {#each NATURALS as btn}
-      {@const s = stateFor(btn)}
-      <button
-        type="button"
-        aria-label="Scale degree {btn.label}"
-        disabled={locked}
-        class="w-12 h-12 rounded-lg border bg-transparent text-lg font-semibold transition-all duration-200 disabled:cursor-not-allowed {btnClass(s)}"
-        onclick={() => onanswer(btn.degree)}
-      >
-        {btn.label}
-      </button>
-    {/each}
-  </div>
-  {#if showFlats}
+  {#if activeNaturals.length > 0}
     <div class="flex gap-2">
-      {#each FLATS as btn}
+      {#each activeNaturals as btn}
+        {@const s = stateFor(btn)}
+        <button
+          type="button"
+          aria-label="Scale degree {btn.label}"
+          disabled={locked}
+          class="w-12 h-12 rounded-lg border bg-transparent text-lg font-semibold transition-all duration-200 disabled:cursor-not-allowed {btnClass(s)}"
+          onclick={() => onanswer(btn.degree)}
+        >
+          {btn.label}
+        </button>
+      {/each}
+    </div>
+  {/if}
+  {#if activeFlats.length > 0}
+    <div class="flex gap-2">
+      {#each activeFlats as btn}
         {@const s = stateFor(btn)}
         <button
           type="button"
