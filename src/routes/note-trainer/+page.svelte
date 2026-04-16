@@ -190,7 +190,7 @@
 <div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
   <div class="animate-in">
     <!-- Top strip: title left, score right (stacks on mobile) -->
-    <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6 mb-10">
+    <div class="flex flex-col items-start gap-5 sm:flex-row sm:justify-between sm:gap-6 mb-10">
       <div>
         <p class="eyebrow mb-2">Chapter II</p>
         <h1 class="text-3xl sm:text-[34px] font-semibold tracking-tight text-text-primary leading-tight">
@@ -201,7 +201,7 @@
     </div>
 
     <!-- Controls -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-10">
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 mb-10">
       <ModeToggle {mode} onchange={handleModeChange} />
       <PresetPicker
         {presetId}
@@ -262,9 +262,9 @@
       {/if}
     </div>
 
-    <!-- Keyboard hint -->
+    <!-- Keyboard hint (desktop only) -->
     {#if mode === 'note'}
-      <p class="text-center text-xs text-text-tertiary">
+      <p class="hidden sm:block text-center text-xs text-text-tertiary">
         {#if naturalsOnly}
           Press <kbd class="kbd">C</kbd> <kbd class="kbd">D</kbd>
           <kbd class="kbd">E</kbd> <kbd class="kbd">F</kbd>

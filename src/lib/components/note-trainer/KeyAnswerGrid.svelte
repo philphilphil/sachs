@@ -46,7 +46,7 @@
     <button
       aria-label="{k} major"
       {disabled}
-      class="relative h-12 rounded-lg border bg-transparent serif text-base font-medium transition-all duration-200 disabled:cursor-not-allowed {classFor(s)}"
+      class="relative h-14 sm:h-12 rounded-lg border bg-transparent serif text-base font-medium transition-all duration-200 disabled:cursor-not-allowed {classFor(s)}"
       onclick={() => onanswer(k)}
     >
       {k}

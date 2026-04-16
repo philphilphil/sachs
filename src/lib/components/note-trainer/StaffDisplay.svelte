@@ -10,6 +10,7 @@
   let { keySignature, note }: Props = $props();
 
   let container: HTMLDivElement;
+  let isMobile = $state(false);
 
   async function render() {
     if (!container) return;
@@ -20,8 +21,13 @@
       const mod: any = await import('vexflow');
       const { Factory, StaveNote, Voice, Formatter, Accidental } = mod;
 
+      const w = isMobile ? 300 : 560;
+      const h = isMobile ? 200 : 180;
+      const staveW = w - 20;
+      const formatW = isMobile ? 140 : 360;
+
       const factory = new Factory({
-        renderer: { elementId: container, width: 560, height: 180 }
+        renderer: { elementId: container, width: w, height: h }
       });
 
       const ctx = factory.getContext();
@@ -32,8 +38,8 @@
 
       const system = factory.System({
         x: 10,
-        y: 20,
-        width: 540,
+        y: isMobile ? 40 : 20,
+        width: staveW,
         spaceBetweenStaves: 10
       });
 
@@ -58,7 +64,7 @@
 
         Accidental.applyAccidentals([voice], keySignature.vexflowKey);
 
-        new Formatter().joinVoices([voice]).format([voice], 360);
+        new Formatter().joinVoices([voice]).format([voice], formatW);
         stave.setContext(factory.getContext()).draw();
         voice.draw(factory.getContext(), stave);
       } else {
@@ -67,13 +73,12 @@
 
       const svg = container.querySelector('svg');
       if (svg) {
-        svg.setAttribute('viewBox', '0 0 560 180');
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         svg.removeAttribute('width');
         svg.removeAttribute('height');
         svg.style.width = '100%';
         svg.style.height = 'auto';
-        svg.style.maxWidth = '560px';
         svg.style.display = 'block';
       }
     } catch (err) {
@@ -84,13 +89,28 @@
   }
 
   $effect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const update = () => {
+      isMobile = mq.matches;
+    };
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  });
+
+  $effect(() => {
     void keySignature;
     void note;
     void theme.isDark;
+    void isMobile;
     render();
   });
 </script>
 
-<div class="flex justify-center min-h-[180px] w-full">
-  <div bind:this={container} class="min-h-[180px] w-full max-w-[560px]"></div>
+<div class="flex justify-center w-full">
+  <div
+    bind:this={container}
+    class="w-full max-w-[300px] sm:max-w-[560px]"
+  ></div>
 </div>
