@@ -1,38 +1,61 @@
 import { describe, it, expect } from 'vitest';
-import { generateQuestion, type QuizQuestion } from './quiz';
+import { generateQuestion, type QuizQuestion, type QuizCategory } from './quiz';
 import { KEYS } from '../data/keys';
 
 describe('generateQuestion', () => {
-  it('returns a question with text, answerIndex, and answerRing', () => {
-    const q = generateQuestion();
+  it('returns a question with text, answer, keyIndex, and category', () => {
+    const q = generateQuestion('both');
     expect(q).toHaveProperty('text');
-    expect(q).toHaveProperty('answerIndex');
-    expect(q).toHaveProperty('answerRing');
+    expect(q).toHaveProperty('answer');
+    expect(q).toHaveProperty('keyIndex');
+    expect(q).toHaveProperty('category');
     expect(typeof q.text).toBe('string');
-    expect(q.answerIndex).toBeGreaterThanOrEqual(0);
-    expect(q.answerIndex).toBeLessThan(12);
-    expect(['major', 'minor']).toContain(q.answerRing);
+    expect(typeof q.answer).toBe('string');
+    expect(q.keyIndex).toBeGreaterThanOrEqual(0);
+    expect(q.keyIndex).toBeLessThan(12);
+    expect(['order', 'signatures']).toContain(q.category);
   });
 
   it('generates different questions over multiple calls', () => {
     const questions = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      questions.add(generateQuestion().text);
+      questions.add(generateQuestion('both').text);
     }
     expect(questions.size).toBeGreaterThan(1);
   });
 
-  it('relative minor questions have answerRing "minor"', () => {
-    // Generate many questions, find a "What is the relative minor of X?" one
+  it('order category only produces order questions', () => {
+    for (let i = 0; i < 30; i++) {
+      const q = generateQuestion('order');
+      expect(q.category).toBe('order');
+    }
+  });
+
+  it('signatures category only produces signatures questions', () => {
+    for (let i = 0; i < 30; i++) {
+      const q = generateQuestion('signatures');
+      expect(q.category).toBe('signatures');
+    }
+  });
+
+  it('both category produces both types', () => {
+    const categories = new Set<string>();
     for (let i = 0; i < 100; i++) {
-      const q = generateQuestion();
-      if (q.text.startsWith('What is the relative minor')) {
-        expect(q.answerRing).toBe('minor');
-        const keyName = q.text.match(/of (\S+)\?/)?.[1];
+      categories.add(generateQuestion('both').category);
+    }
+    expect(categories.has('order')).toBe(true);
+    expect(categories.has('signatures')).toBe(true);
+  });
+
+  it('order questions about next key have correct answers', () => {
+    for (let i = 0; i < 100; i++) {
+      const q = generateQuestion('order');
+      if (q.text.startsWith('What key comes after')) {
+        const keyName = q.text.match(/after (\S+) on/)?.[1];
         if (keyName) {
           const key = KEYS.find((k) => k.name === keyName);
           if (key) {
-            expect(q.answerIndex).toBe(key.index);
+            expect(q.answer).toBe(KEYS[(key.index + 1) % 12].name);
           }
         }
         return;
@@ -40,24 +63,29 @@ describe('generateQuestion', () => {
     }
   });
 
-  it('dominant questions have answerRing "major"', () => {
+  it('signature questions about sharp/flat count have correct answers', () => {
     for (let i = 0; i < 100; i++) {
-      const q = generateQuestion();
-      if (q.text.includes('dominant of')) {
-        expect(q.answerRing).toBe('major');
+      const q = generateQuestion('signatures');
+      if (q.text.startsWith('How many sharps')) {
+        const key = KEYS[q.keyIndex];
+        if (key.sharps > 0) {
+          expect(q.answer).toContain('sharp');
+        } else if (key.flats > 0) {
+          expect(q.answer).toContain('flat');
+        } else {
+          expect(q.answer).toBe('No sharps or flats');
+        }
         return;
       }
     }
   });
 
-  it('excludes the previous question when previousIndex is provided', () => {
-    // When we exclude index 0, we should never get a question about C
-    const results = new Set<number>();
-    for (let i = 0; i < 100; i++) {
-      const q = generateQuestion(0);
-      results.add(q.answerIndex);
+  it('excludes the previous keyIndex when provided', () => {
+    const indices = new Set<number>();
+    for (let i = 0; i < 50; i++) {
+      const q = generateQuestion('both', 0);
+      indices.add(q.keyIndex);
     }
-    // Should have variety, not just one answer
-    expect(results.size).toBeGreaterThan(1);
+    expect(indices.has(0)).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import { type Mode } from '$lib/data/keys';
   import { shortestRotationTo } from '$lib/utils/circle-math';
-  import { generateQuestion, type QuizQuestion } from '$lib/utils/quiz';
+  import { generateQuestion, type QuizQuestion, type QuizCategory } from '$lib/utils/quiz';
   import { browser } from '$app/environment';
   import CircleOfFifths from '$lib/components/circle-of-fifths/CircleOfFifths.svelte';
   import DetailPanel from '$lib/components/circle-of-fifths/DetailPanel.svelte';
@@ -27,13 +27,8 @@
   // Quiz state
   let quizScore = $state(0);
   let quizTotal = $state(0);
+  let quizCategory = $state<QuizCategory>('order');
   let currentQuestion = $state<QuizQuestion | null>(null);
-  let quizFeedback = $state<{
-    index: number;
-    ring: 'major' | 'minor';
-    result: 'correct' | 'wrong';
-  } | null>(null);
-  let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   function rotateToKey(index: number) {
     const targetDeg = -index * 30;
@@ -42,12 +37,7 @@
     rotation.set(rawRotation);
   }
 
-  function handleSelect(index: number, ring: 'major' | 'minor') {
-    if (mode === 'learn') {
-      handleQuizAnswer(index, ring);
-      return;
-    }
-
+  function handleSelect(index: number, _ring: 'major' | 'minor') {
     // Toggle selection: click same key to deselect
     if (selectedKey === index) {
       selectedKey = null;
@@ -79,44 +69,42 @@
 
   function handleModeChange(newMode: Mode) {
     mode = newMode;
-    quizFeedback = null;
 
     if (newMode === 'learn') {
       selectedKey = null;
       quizScore = 0;
       quizTotal = 0;
-      currentQuestion = generateQuestion();
+      currentQuestion = generateQuestion(quizCategory);
     } else {
       currentQuestion = null;
     }
   }
 
-  function handleQuizAnswer(index: number, ring: 'major' | 'minor') {
-    if (!currentQuestion || quizFeedback) return;
+  function handleCategoryChange(cat: QuizCategory) {
+    quizCategory = cat;
+    quizScore = 0;
+    quizTotal = 0;
+    currentQuestion = generateQuestion(cat);
+  }
 
+  function handleQuizRate(correct: boolean) {
     quizTotal++;
-    const isCorrect =
-      index === currentQuestion.answerIndex && ring === currentQuestion.answerRing;
-
-    if (isCorrect) quizScore++;
-
-    quizFeedback = { index, ring, result: isCorrect ? 'correct' : 'wrong' };
-    selectedKey = currentQuestion.answerIndex;
-
-    if (feedbackTimeout) clearTimeout(feedbackTimeout);
-    feedbackTimeout = setTimeout(() => {
-      quizFeedback = null;
+    if (correct) quizScore++;
+    // Highlight the relevant key on the circle as visual aid
+    selectedKey = currentQuestion?.keyIndex ?? null;
+    if (selectedKey !== null) rotateToKey(selectedKey);
+    // Next question after a brief pause
+    setTimeout(() => {
       selectedKey = null;
-      currentQuestion = generateQuestion(currentQuestion?.answerIndex);
-    }, 1500);
+      currentQuestion = generateQuestion(quizCategory, currentQuestion?.keyIndex);
+    }, 800);
   }
 
   function handleQuizReset() {
     quizScore = 0;
     quizTotal = 0;
-    quizFeedback = null;
     selectedKey = null;
-    currentQuestion = generateQuestion();
+    currentQuestion = generateQuestion(quizCategory);
   }
 
   function handleKeyboardNav(e: KeyboardEvent) {
@@ -178,7 +166,7 @@
           {selectedKey}
           rotation={$rotation}
           {mode}
-          {quizFeedback}
+          quizFeedback={null}
           onselect={handleSelect}
           ondragrotate={handleDragRotate}
           ondragend={handleDragEnd}
@@ -192,7 +180,9 @@
             question={currentQuestion}
             score={quizScore}
             total={quizTotal}
-            feedback={quizFeedback ? quizFeedback.result : null}
+            category={quizCategory}
+            oncategorychange={handleCategoryChange}
+            onrate={handleQuizRate}
             onreset={handleQuizReset}
           />
         {:else}
