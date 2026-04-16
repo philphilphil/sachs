@@ -5,9 +5,10 @@
   interface Props {
     level: ScaleDegreeLevel;
     onchange: (level: ScaleDegreeLevel) => void;
+    onreset: () => void;
   }
 
-  let { level, onchange }: Props = $props();
+  let { level, onchange, onreset }: Props = $props();
 
   const def = $derived(getLevel(level));
   const degreeList = $derived<ScaleDegree[]>(
@@ -50,6 +51,15 @@
       onclick={stepUp}
     >
       Skip ahead →
+    </button>
+  {/if}
+  {#if level > 1}
+    <button
+      type="button"
+      class="text-xs text-text-tertiary hover:text-text-primary underline underline-offset-2"
+      onclick={onreset}
+    >
+      ← Reset to level 1
     </button>
   {/if}
 </div>

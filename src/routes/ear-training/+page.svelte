@@ -268,6 +268,18 @@
     nextRound();
   }
 
+  function handleLevelReset() {
+    if (level === 1) return;
+    level = 1;
+    if (browser) saveLevel(level);
+    tracker.reset();
+    correct = 0;
+    total = 0;
+    streak = 0;
+    bestStreak = browser ? loadBestStreak('mode-a', level) : 0;
+    nextRound();
+  }
+
   // ---- keyboard ----
   function handleKey(e: KeyboardEvent) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -323,7 +335,11 @@
     <div class="flex items-center justify-between gap-4 mb-10">
       <ModeToggle {mode} onchange={(m) => { mode = m; if (audioUnlocked && m === 'major-minor' && !bRound) nextBRound(); }} />
       {#if mode === 'scale-degree'}
-        <LevelIndicator {level} onchange={handleLevelJump} />
+        <LevelIndicator
+          {level}
+          onchange={handleLevelJump}
+          onreset={handleLevelReset}
+        />
       {/if}
     </div>
 
@@ -386,7 +402,7 @@
             />
             <button
               type="button"
-              class="px-4 py-2 rounded-lg bg-text-primary text-bg-primary text-sm font-medium hover:opacity-90"
+              class="px-4 py-2 rounded-lg border border-[color:var(--color-violet)] bg-[color:var(--color-violet-light)] text-[color:var(--color-violet-deep)] text-sm font-medium transition-all duration-200 hover:bg-[color:var(--color-violet)] hover:text-white"
               onclick={handleNext}
             >
               Next — Enter
