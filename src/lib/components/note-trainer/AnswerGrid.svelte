@@ -24,11 +24,11 @@
   function letterClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]';
+        return 'border-[color:var(--color-success)] text-white bg-[color:var(--color-success)] shadow-[0_0_0_5px_rgba(5,150,105,0.18)] animate-pop-correct';
       case 'incorrect':
-        return 'border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)]';
+        return 'border-[color:var(--color-error)] text-white bg-[color:var(--color-error)] shadow-[0_0_0_5px_rgba(220,38,38,0.16)] animate-pop-wrong';
       case 'reveal':
-        return 'border-[color:var(--color-success)]/60 text-[color:var(--color-success)] bg-[color:var(--color-success-light)]/60';
+        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)] border-dashed';
       default:
         return 'border-border text-text-primary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] hover:bg-[color:var(--color-violet-light)]';
     }
@@ -37,11 +37,11 @@
   function pillClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]';
+        return 'border-[color:var(--color-success)] text-white bg-[color:var(--color-success)] shadow-[0_0_0_4px_rgba(5,150,105,0.16)] animate-pop-correct';
       case 'incorrect':
-        return 'border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)]';
+        return 'border-[color:var(--color-error)] text-white bg-[color:var(--color-error)] shadow-[0_0_0_4px_rgba(220,38,38,0.14)] animate-pop-wrong';
       case 'reveal':
-        return 'border-[color:var(--color-success)]/50 text-[color:var(--color-success)]/80';
+        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] border-dashed';
       default:
         return 'border-border-subtle text-text-tertiary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)]';
     }
@@ -54,12 +54,15 @@
   {#each LETTERS as letter}
     {@const sharpAnswer = `${letter}♯`}
     {@const flatAnswer = `${letter}♭`}
-    <div class="flex flex-col items-center gap-1.5">
+    {@const sharpState = stateFor(sharpAnswer)}
+    {@const letterState = stateFor(letter)}
+    {@const flatState = stateFor(flatAnswer)}
+    <div class="relative flex flex-col items-center gap-1.5">
       {#if showAccidentals}
         <button
           aria-label={sharpAnswer}
           {disabled}
-          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(stateFor(sharpAnswer))}"
+          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(sharpState)}"
           onclick={() => onanswer(sharpAnswer)}
         >
           ♯
@@ -68,16 +71,32 @@
       <button
         aria-label={letter}
         {disabled}
-        class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border bg-transparent text-lg serif font-medium transition-all duration-200 disabled:cursor-not-allowed {letterClass(stateFor(letter))}"
+        class="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg border bg-transparent text-lg serif font-medium transition-all duration-200 disabled:cursor-not-allowed {letterClass(letterState)}"
         onclick={() => onanswer(letter)}
       >
         {letter}
+        {#if letterState === 'correct'}
+          <span
+            class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white text-[color:var(--color-success)] flex items-center justify-center shadow-sm"
+            aria-hidden="true"
+          >
+            <svg class="w-3 h-3" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7l3 3 5-6" />
+            </svg>
+          </span>
+          <span
+            class="absolute -top-8 left-1/2 -translate-x-1/2 text-[color:var(--color-success)] font-semibold text-sm serif italic pointer-events-none animate-rise-fade"
+            aria-hidden="true"
+          >
+            +1
+          </span>
+        {/if}
       </button>
       {#if showAccidentals}
         <button
           aria-label={flatAnswer}
           {disabled}
-          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(stateFor(flatAnswer))}"
+          class="w-9 h-5 text-[11px] rounded-md border bg-transparent font-medium transition-all duration-200 disabled:cursor-not-allowed {pillClass(flatState)}"
           onclick={() => onanswer(flatAnswer)}
         >
           ♭
