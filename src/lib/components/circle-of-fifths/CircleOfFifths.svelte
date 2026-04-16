@@ -8,14 +8,27 @@
   import Wedge from './Wedge.svelte';
   import ConnectingArcs from './ConnectingArcs.svelte';
 
+  type Mode = 'explore' | 'reference' | 'learn';
+
   interface Props {
     selectedKey: number | null;
     rotation: number;
+    mode: Mode;
     quizFeedback: { index: number; ring: 'major' | 'minor'; result: 'correct' | 'wrong' } | null;
     onselect: (index: number, ring: 'major' | 'minor') => void;
+    ondragrotate: (angleDelta: number) => void;
+    ondragend: (velocity: number) => void;
   }
 
-  let { selectedKey, rotation, quizFeedback, onselect }: Props = $props();
+  let {
+    selectedKey,
+    rotation,
+    mode,
+    quizFeedback,
+    onselect,
+    ondragrotate,
+    ondragend
+  }: Props = $props();
 
   const CX = 300;
   const CY = 300;
@@ -23,6 +36,82 @@
   const OUTER_R1 = 195;
   const INNER_R2 = 190;
   const INNER_R1 = 130;
+
+  let svgEl: SVGSVGElement;
+  let dragging = $state(false);
+  let lastAngle = 0;
+  let lastTime = 0;
+  let velocity = 0;
+
+  function getAngleFromEvent(e: MouseEvent | Touch): number {
+    const rect = svgEl.getBoundingClientRect();
+    const scaleX = 600 / rect.width;
+    const scaleY = 600 / rect.height;
+    const x = (e.clientX - rect.left) * scaleX - CX;
+    const y = (e.clientY - rect.top) * scaleY - CY;
+    return Math.atan2(y, x) * (180 / Math.PI);
+  }
+
+  function handlePointerDown(e: MouseEvent) {
+    if (mode !== 'explore') return;
+    dragging = true;
+    lastAngle = getAngleFromEvent(e);
+    lastTime = performance.now();
+    velocity = 0;
+  }
+
+  function handlePointerMove(e: MouseEvent) {
+    if (!dragging) return;
+    const currentAngle = getAngleFromEvent(e);
+    let delta = currentAngle - lastAngle;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    const now = performance.now();
+    const dt = now - lastTime;
+    if (dt > 0) velocity = delta / dt;
+
+    lastAngle = currentAngle;
+    lastTime = now;
+    ondragrotate(delta);
+  }
+
+  function handlePointerUp() {
+    if (!dragging) return;
+    dragging = false;
+    ondragend(velocity * 100);
+  }
+
+  function handleTouchStart(e: TouchEvent) {
+    if (mode !== 'explore' || e.touches.length !== 1) return;
+    dragging = true;
+    lastAngle = getAngleFromEvent(e.touches[0]);
+    lastTime = performance.now();
+    velocity = 0;
+  }
+
+  function handleTouchMove(e: TouchEvent) {
+    if (!dragging || e.touches.length !== 1) return;
+    e.preventDefault();
+    const currentAngle = getAngleFromEvent(e.touches[0]);
+    let delta = currentAngle - lastAngle;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    const now = performance.now();
+    const dt = now - lastTime;
+    if (dt > 0) velocity = delta / dt;
+
+    lastAngle = currentAngle;
+    lastTime = now;
+    ondragrotate(delta);
+  }
+
+  function handleTouchEnd() {
+    if (!dragging) return;
+    dragging = false;
+    ondragend(velocity * 100);
+  }
 
   function majorFill(index: number): string {
     if (selectedKey === null) return defaultFill(false);
@@ -53,8 +142,18 @@
 <svg
   viewBox="0 0 600 600"
   class="w-full max-w-[600px]"
+  class:cursor-grab={mode === 'explore' && !dragging}
+  class:cursor-grabbing={mode === 'explore' && dragging}
   role="img"
   aria-label="Circle of fifths"
+  bind:this={svgEl}
+  onmousedown={handlePointerDown}
+  onmousemove={handlePointerMove}
+  onmouseup={handlePointerUp}
+  onmouseleave={handlePointerUp}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
 >
   <defs>
     <filter id="wedge-shadow">
@@ -115,5 +214,6 @@
   svg {
     display: block;
     margin: 0 auto;
+    touch-action: none;
   }
 </style>
