@@ -72,6 +72,6 @@
   });
 </script>
 
-<div class="flex justify-center">
-  <div bind:this={container} class="inline-block"></div>
+<div class="flex justify-center min-h-[180px] w-full">
+  <div bind:this={container} class="inline-block min-h-[180px]"></div>
 </div>

@@ -225,7 +225,7 @@
       </p>
 
       <div
-        class="flex justify-center transition-transform"
+        class="flex justify-center min-h-[180px]"
         class:animate-pulse-glow={staffPulse === 'correct'}
         class:animate-shake-x={staffPulse === 'incorrect'}
       >
