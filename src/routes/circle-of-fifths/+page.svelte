@@ -29,6 +29,7 @@
   let quizTotal = $state(0);
   let quizCategory = $state<QuizCategory>('order');
   let currentQuestion = $state<QuizQuestion | null>(null);
+  let quizRevealed = $state(false);
 
   function rotateToKey(index: number) {
     const targetDeg = -index * 30;
@@ -84,25 +85,30 @@
     quizCategory = cat;
     quizScore = 0;
     quizTotal = 0;
+    quizRevealed = false;
+    selectedKey = null;
     currentQuestion = generateQuestion(cat);
+  }
+
+  function handleQuizReveal() {
+    // Show the key on the circle and rotate to it
+    selectedKey = currentQuestion?.keyIndex ?? null;
+    if (selectedKey !== null) rotateToKey(selectedKey);
+    quizRevealed = true;
   }
 
   function handleQuizRate(correct: boolean) {
     quizTotal++;
     if (correct) quizScore++;
-    // Highlight the relevant key on the circle as visual aid
-    selectedKey = currentQuestion?.keyIndex ?? null;
-    if (selectedKey !== null) rotateToKey(selectedKey);
-    // Next question after a brief pause
-    setTimeout(() => {
-      selectedKey = null;
-      currentQuestion = generateQuestion(quizCategory, currentQuestion?.keyIndex);
-    }, 800);
+    quizRevealed = false;
+    selectedKey = null;
+    currentQuestion = generateQuestion(quizCategory, currentQuestion?.keyIndex);
   }
 
   function handleQuizReset() {
     quizScore = 0;
     quizTotal = 0;
+    quizRevealed = false;
     selectedKey = null;
     currentQuestion = generateQuestion(quizCategory);
   }
@@ -166,7 +172,7 @@
           {selectedKey}
           rotation={$rotation}
           {mode}
-          hideLabels={mode === 'learn' && currentQuestion?.category === 'order'}
+          hideLabels={mode === 'learn' && currentQuestion?.category === 'order' && !quizRevealed}
           quizFeedback={null}
           onselect={handleSelect}
           ondragrotate={handleDragRotate}
@@ -183,6 +189,7 @@
             total={quizTotal}
             category={quizCategory}
             oncategorychange={handleCategoryChange}
+            onreveal={handleQuizReveal}
             onrate={handleQuizRate}
             onreset={handleQuizReset}
           />

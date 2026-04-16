@@ -7,11 +7,12 @@
     total: number;
     category: QuizCategory;
     oncategorychange: (category: QuizCategory) => void;
+    onreveal: () => void;
     onrate: (correct: boolean) => void;
     onreset: () => void;
   }
 
-  let { question, score, total, category, oncategorychange, onrate, onreset }: Props = $props();
+  let { question, score, total, category, oncategorychange, onreveal, onrate, onreset }: Props = $props();
 
   let revealed = $state(false);
 
@@ -23,6 +24,7 @@
 
   function showAnswer() {
     revealed = true;
+    onreveal();
   }
 
   function rate(correct: boolean) {
