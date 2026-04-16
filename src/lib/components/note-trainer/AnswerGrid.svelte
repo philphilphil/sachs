@@ -24,26 +24,26 @@
   function letterClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'border-[color:var(--color-success)] text-white bg-[color:var(--color-success)] shadow-[0_0_0_5px_rgba(5,150,105,0.18)] animate-pop-correct';
+        return 'border-2 border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)] shadow-[0_0_0_6px_rgba(5,150,105,0.14)] animate-pop-correct';
       case 'incorrect':
-        return 'border-[color:var(--color-error)] text-white bg-[color:var(--color-error)] shadow-[0_0_0_5px_rgba(220,38,38,0.16)] animate-pop-wrong';
+        return 'border-2 border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)] shadow-[0_0_0_6px_rgba(220,38,38,0.12)] animate-pop-wrong';
       case 'reveal':
-        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)] border-dashed';
+        return 'border-2 border-dashed border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)]/70';
       default:
-        return 'border-border text-text-primary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] hover:bg-[color:var(--color-violet-light)]';
+        return 'border border-border text-text-primary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] hover:bg-[color:var(--color-violet-light)]';
     }
   }
 
   function pillClass(state: ButtonState): string {
     switch (state) {
       case 'correct':
-        return 'border-[color:var(--color-success)] text-white bg-[color:var(--color-success)] shadow-[0_0_0_4px_rgba(5,150,105,0.16)] animate-pop-correct';
+        return 'border-2 border-[color:var(--color-success)] text-[color:var(--color-success)] bg-[color:var(--color-success-light)] shadow-[0_0_0_4px_rgba(5,150,105,0.12)] animate-pop-correct';
       case 'incorrect':
-        return 'border-[color:var(--color-error)] text-white bg-[color:var(--color-error)] shadow-[0_0_0_4px_rgba(220,38,38,0.14)] animate-pop-wrong';
+        return 'border-2 border-[color:var(--color-error)] text-[color:var(--color-error)] bg-[color:var(--color-error-light)] shadow-[0_0_0_4px_rgba(220,38,38,0.10)] animate-pop-wrong';
       case 'reveal':
-        return 'border-[color:var(--color-success)] text-[color:var(--color-success)] border-dashed';
+        return 'border-2 border-dashed border-[color:var(--color-success)] text-[color:var(--color-success)]';
       default:
-        return 'border-border-subtle text-text-tertiary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)]';
+        return 'border border-border-subtle text-text-tertiary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)]';
     }
   }
 
