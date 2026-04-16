@@ -173,7 +173,6 @@
           rotation={$rotation}
           {mode}
           hideLabels={mode === 'learn' && currentQuestion?.category === 'order' && !quizRevealed}
-          quizFeedback={null}
           onselect={handleSelect}
           ondragrotate={handleDragRotate}
           ondragend={handleDragEnd}

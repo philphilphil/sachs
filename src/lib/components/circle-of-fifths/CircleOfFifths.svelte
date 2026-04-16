@@ -12,7 +12,6 @@
     rotation: number;
     mode: Mode;
     hideLabels: boolean;
-    quizFeedback: { index: number; ring: 'major' | 'minor'; result: 'correct' | 'wrong' } | null;
     onselect: (index: number, ring: 'major' | 'minor') => void;
     ondragrotate: (angleDelta: number) => void;
     ondragend: (velocity: number) => void;
@@ -23,7 +22,6 @@
     rotation,
     mode,
     hideLabels = false,
-    quizFeedback,
     onselect,
     ondragrotate,
     ondragend
@@ -122,14 +120,6 @@
     return distanceColor(harmonicDistance(selectedKey, index), true);
   }
 
-  function feedbackClass(index: number, ring: 'major' | 'minor'): string {
-    if (!quizFeedback) return '';
-    if (quizFeedback.index === index && quizFeedback.ring === ring) {
-      return `quiz-${quizFeedback.result}`;
-    }
-    return '';
-  }
-
   function handleKeydown(index: number, ring: 'major' | 'minor', e: KeyboardEvent) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -172,7 +162,6 @@
         label={key.name}
         fill={majorFill(key.index)}
         isSelected={selectedKey === key.index}
-        feedbackClass={feedbackClass(key.index, 'major')}
         hideLabel={hideLabels}
         {rotation}
         onclick={() => onselect(key.index, 'major')}
@@ -191,7 +180,6 @@
         label={key.minor}
         fill={minorFill(key.index)}
         isSelected={selectedKey === key.index}
-        feedbackClass={feedbackClass(key.index, 'minor')}
         hideLabel={hideLabels}
         {rotation}
         onclick={() => onselect(key.index, 'minor')}

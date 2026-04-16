@@ -10,7 +10,6 @@
     label: string;
     fill: string;
     isSelected: boolean;
-    feedbackClass: string;
     hideLabel: boolean;
     rotation: number;
     onclick: () => void;
@@ -26,7 +25,6 @@
     label,
     fill,
     isSelected,
-    feedbackClass = '',
     hideLabel = false,
     rotation,
     onclick,
@@ -42,7 +40,7 @@
 </script>
 
 <g
-  class="wedge {feedbackClass}"
+  class="wedge"
   class:selected={isSelected}
   role="button"
   tabindex="0"
@@ -108,33 +106,9 @@
     user-select: none;
   }
 
-  .wedge.quiz-correct .wedge-path {
-    animation: flash-correct 1.5s ease;
-  }
-
-  .wedge.quiz-wrong .wedge-path {
-    animation: flash-wrong 1.5s ease;
-  }
-
-  @keyframes flash-correct {
-    0%, 100% { fill: inherit; }
-    20% { fill: #22c55e; }
-    60% { fill: #22c55e; }
-  }
-
-  @keyframes flash-wrong {
-    0%, 100% { fill: inherit; }
-    20% { fill: #ef4444; }
-    60% { fill: #ef4444; }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .wedge-path {
       transition: none;
-    }
-    .wedge.quiz-correct .wedge-path,
-    .wedge.quiz-wrong .wedge-path {
-      animation: none;
     }
   }
 </style>
