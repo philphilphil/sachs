@@ -3,6 +3,7 @@
   import { browser } from '$app/environment';
   import {
     PRESETS,
+    KEY_SIGNATURES,
     buildPianoPreset,
     type Preset,
     type PresetId,
@@ -24,9 +25,10 @@
   import ScoreStrip from '$lib/components/shared/ScoreStrip.svelte';
 
   let mode = $state<QuizMode>('note');
-  let presetId = $state<PresetId>('violin-1st');
+  let presetId = $state<PresetId>('staff-basics');
   let octaveRange = $state<{ min: number; max: number }>({ min: 3, max: 5 });
   let naturalsOnly = $state(false);
+  const effectiveNaturalsOnly = $derived(presetId === 'staff-basics' || naturalsOnly);
 
   let correct = $state(0);
   let total = $state(0);
@@ -45,7 +47,10 @@
       presetId === 'piano'
         ? buildPianoPreset(octaveRange)
         : PRESETS.find((p) => p.id === presetId)!;
-    if (mode === 'note' && naturalsOnly) {
+    if (mode === 'key') {
+      return { ...base, keys: KEY_SIGNATURES };
+    }
+    if (effectiveNaturalsOnly) {
       const cMajor = base.keys.find((k) => k.tonic === 'C');
       if (cMajor) return { ...base, keys: [cMajor] };
     }
@@ -53,7 +58,7 @@
   }
 
   function storageVariant(): string | undefined {
-    return mode === 'note' && naturalsOnly ? 'naturals' : undefined;
+    return mode === 'note' && effectiveNaturalsOnly ? 'naturals' : undefined;
   }
 
   function previousKeySig(): KeySignature | undefined {
@@ -156,7 +161,7 @@
     // Only shift/alt act as modifiers — combined (e.g. Shift+Alt) → natural.
     const shift = event.shiftKey && !event.altKey;
     const alt = event.altKey && !event.shiftKey;
-    if (naturalsOnly) {
+    if (effectiveNaturalsOnly) {
       handleAnswer(letter);
     } else if (shift) {
       handleAnswer(`${letter}♯`);
@@ -203,15 +208,17 @@
     <!-- Controls -->
     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 mb-10">
       <ModeToggle {mode} onchange={handleModeChange} />
-      <PresetPicker
-        {presetId}
-        {octaveRange}
-        {naturalsOnly}
-        showNaturalsOnly={mode === 'note'}
-        onpresetchange={handlePresetChange}
-        onrangechange={handleRangeChange}
-        onnaturalsonlychange={handleNaturalsOnlyChange}
-      />
+      {#if mode === 'note'}
+        <PresetPicker
+          {presetId}
+          {octaveRange}
+          {naturalsOnly}
+          showNaturalsOnly={presetId !== 'staff-basics'}
+          onpresetchange={handlePresetChange}
+          onrangechange={handleRangeChange}
+          onnaturalsonlychange={handleNaturalsOnlyChange}
+        />
+      {/if}
     </div>
 
     <!-- Staff area (no card — music breathes on the page) -->
@@ -250,7 +257,7 @@
         <AnswerGrid
           correctAnswer={noteQuestion.correctAnswer}
           {feedback}
-          showAccidentals={!naturalsOnly}
+          showAccidentals={!effectiveNaturalsOnly}
           onanswer={handleAnswer}
         />
       {:else if mode === 'key' && keyQuestion}
@@ -265,7 +272,7 @@
     <!-- Keyboard hint (desktop only) -->
     {#if mode === 'note'}
       <p class="hidden sm:block text-center text-xs text-text-tertiary">
-        {#if naturalsOnly}
+        {#if effectiveNaturalsOnly}
           Press <kbd class="kbd">C</kbd> <kbd class="kbd">D</kbd>
           <kbd class="kbd">E</kbd> <kbd class="kbd">F</kbd>
           <kbd class="kbd">G</kbd> <kbd class="kbd">A</kbd>
