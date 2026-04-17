@@ -80,6 +80,18 @@
         svg.style.width = '100%';
         svg.style.height = 'auto';
         svg.style.display = 'block';
+
+        // VexFlow bakes colors into attributes per-draw-call, so ctx.setStrokeStyle
+        // doesn't reach every element (notably ledger lines). Force everything to
+        // the theme's text color so the staff reads cleanly in both themes.
+        svg.querySelectorAll<SVGElement>('[stroke]').forEach((el) => {
+          const s = el.getAttribute('stroke');
+          if (s && s !== 'none' && s !== 'transparent') el.setAttribute('stroke', color);
+        });
+        svg.querySelectorAll<SVGElement>('[fill]').forEach((el) => {
+          const f = el.getAttribute('fill');
+          if (f && f !== 'none' && f !== 'transparent') el.setAttribute('fill', color);
+        });
       }
     } catch (err) {
       console.error('VexFlow render failed', err);

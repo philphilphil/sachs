@@ -72,6 +72,20 @@
       const stave = system.addStave({ voices: [] }).addClef('treble');
       stave.setContext(factory.getContext()).draw();
       voice.draw(factory.getContext(), stave);
+
+      // VexFlow doesn't apply ctx colors to every element (e.g. ledger lines).
+      // Force everything to the theme's text color.
+      const svg = container.querySelector('svg');
+      if (svg) {
+        svg.querySelectorAll<SVGElement>('[stroke]').forEach((el) => {
+          const s = el.getAttribute('stroke');
+          if (s && s !== 'none' && s !== 'transparent') el.setAttribute('stroke', color);
+        });
+        svg.querySelectorAll<SVGElement>('[fill]').forEach((el) => {
+          const f = el.getAttribute('fill');
+          if (f && f !== 'none' && f !== 'transparent') el.setAttribute('fill', color);
+        });
+      }
     } catch (err) {
       console.error('VexFlow render failed', err);
       if (container) {
