@@ -34,13 +34,13 @@
       delay: 120
     },
     {
-      title: 'Finger Patterns',
-      description: 'Map violin fingerings across the board, one position at a time.',
-      href: `${base}/finger-patterns`,
+      title: 'Violin Scales',
+      description: 'Pick a scale, see the fingering on the neck, listen back as you play.',
+      href: `${base}/violin-scales`,
       chapter: 'IV',
-      icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="14" x2="17" y2="14"/><circle cx="8" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="7" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="13" cy="16" r="1" fill="currentColor" stroke="none"/></svg>`,
-      color: 'var(--color-magenta)',
-      colorLight: 'var(--color-magenta-light)',
+      icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5"><path d="M6 2v16M14 2v16" stroke-linecap="round"/><circle cx="6" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="14" r="1.2" fill="currentColor" stroke="none"/><line x1="3" y1="3" x2="17" y2="3" stroke-linecap="round" stroke-width="2"/></svg>`,
+      color: 'var(--color-rose)',
+      colorLight: 'var(--color-rose-light)',
       delay: 180
     }
   ];

@@ -8,7 +8,7 @@
     { href: '/circle-of-fifths', label: 'Circle of Fifths' },
     { href: '/note-trainer', label: 'Note Reading' },
     { href: '/ear-training', label: 'Ear Training' },
-    { href: '/finger-patterns', label: 'Finger Patterns' }
+    { href: '/violin-scales', label: 'Violin Scales' }
   ];
 </script>
 
