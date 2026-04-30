@@ -1,8 +1,10 @@
 /**
  * Microphone-based pitch detection for violin practice.
  *
- * Uses an autocorrelation algorithm (ACF) over a buffer of recent samples.
- * Tuned for sustained, monophonic violin tones in roughly G3..E6.
+ * Uses the Normalized Square Difference Function (NSDF) from McLeod's MPM
+ * algorithm, which is robust against the strong overtones of a bowed violin
+ * and against amplitude variation. Tuned for monophonic violin tones in
+ * roughly G3..E6.
  */
 
 import { PITCH_CLASSES, type PitchClass } from '$lib/utils/ear-training/music-theory';
@@ -16,102 +18,121 @@ export interface PitchReading {
   pitchClass: PitchClass | null;
   /** Cents deviation from the nearest semitone (-50..+50), or null. */
   cents: number | null;
-  /** Signal level (RMS), 0..~1. Below ~0.005 we treat as silence. */
+  /** Signal level (RMS), 0..~1. */
   rms: number;
+  /** NSDF clarity score (0..1). >0.7 is a confident pitch. */
+  clarity: number;
 }
 
 const MIN_FREQ = 70;   // ~D2, well below G3
 const MAX_FREQ = 1500; // ~F#6, well above E5
-const SILENCE_RMS = 0.01;
+const SILENCE_RMS = 0.003; // be permissive — iPad mic with a damped violin is quiet
+const CLARITY_THRESHOLD = 0.6;
+const PEAK_PICK_RATIO = 0.85; // accept first peak ≥ 85% of max peak
 
 /**
- * Autocorrelation pitch detection (basic ACF with parabolic peak refinement).
- *
- * Returns the detected frequency in Hz, or null if no confident pitch.
+ * Detect pitch in a buffer using NSDF.
  */
 export function detectPitch(buf: Float32Array, sampleRate: number): PitchReading {
   const n = buf.length;
 
-  // RMS for silence gating.
+  // RMS (always returned — useful for level meters even when no pitch is found).
   let sumSq = 0;
   for (let i = 0; i < n; i++) sumSq += buf[i] * buf[i];
   const rms = Math.sqrt(sumSq / n);
 
   if (rms < SILENCE_RMS) {
-    return { frequency: null, midi: null, pitchClass: null, cents: null, rms };
+    return { frequency: null, midi: null, pitchClass: null, cents: null, rms, clarity: 0 };
   }
 
-  // Trim buffer to first zero-crossing region to reduce edge artefacts.
-  // (Keep simple: use full buffer.)
-
-  const minLag = Math.floor(sampleRate / MAX_FREQ);
+  const minLag = Math.max(2, Math.floor(sampleRate / MAX_FREQ));
   const maxLag = Math.min(Math.floor(sampleRate / MIN_FREQ), Math.floor(n / 2));
 
-  // ACF: r[lag] = sum_{i=0..N-lag-1} buf[i] * buf[i+lag]
-  let bestLag = -1;
-  let bestCorr = 0;
-
-  // Track previous correlation for peak detection.
-  let prevCorr = 0;
-  let inDip = true;
-  let foundPeak = false;
-
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let corr = 0;
-    const limit = n - lag;
+  // Compute NSDF: nsdf[t] = 2 * Σ x[i]·x[i+t] / Σ (x[i]² + x[i+t]²)
+  const nsdf = new Float32Array(maxLag + 1);
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    let acf = 0;
+    let m = 0;
+    const limit = n - tau;
     for (let i = 0; i < limit; i++) {
-      corr += buf[i] * buf[i + lag];
+      const a = buf[i];
+      const b = buf[i + tau];
+      acf += a * b;
+      m += a * a + b * b;
     }
-    corr /= limit; // normalize by window length
+    nsdf[tau] = m > 0 ? (2 * acf) / m : 0;
+  }
 
-    // Wait until correlation dips below zero (out of the lag-0 hump),
-    // then take the first significant peak.
-    if (inDip) {
-      if (corr < 0) inDip = false;
-      prevCorr = corr;
-      continue;
-    }
+  // Collect positive-going peaks: each "peak" is the local max within a region
+  // bounded by zero crossings of nsdf.
+  const peaks: { tau: number; value: number }[] = [];
+  let inPositive = false;
+  let localMax = -Infinity;
+  let localMaxTau = -1;
 
-    if (!foundPeak) {
-      if (corr > bestCorr) {
-        bestCorr = corr;
-        bestLag = lag;
-      } else if (bestLag > 0 && corr < bestCorr * 0.85) {
-        // Past the peak — stop searching for the *first* peak.
-        foundPeak = true;
-        break;
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    const v = nsdf[tau];
+    if (!inPositive) {
+      if (v > 0) {
+        inPositive = true;
+        localMax = v;
+        localMaxTau = tau;
+      }
+    } else {
+      if (v > localMax) {
+        localMax = v;
+        localMaxTau = tau;
+      }
+      if (v <= 0) {
+        if (localMaxTau > 0) peaks.push({ tau: localMaxTau, value: localMax });
+        inPositive = false;
+        localMax = -Infinity;
+        localMaxTau = -1;
       }
     }
-    prevCorr = corr;
+  }
+  if (inPositive && localMaxTau > 0) {
+    peaks.push({ tau: localMaxTau, value: localMax });
   }
 
-  if (bestLag < 0 || bestCorr < 0.1) {
-    return { frequency: null, midi: null, pitchClass: null, cents: null, rms };
+  if (peaks.length === 0) {
+    return { frequency: null, midi: null, pitchClass: null, cents: null, rms, clarity: 0 };
   }
 
-  // Parabolic interpolation around bestLag for sub-sample precision.
-  const r = (lag: number): number => {
-    if (lag < 1 || lag >= n / 2) return 0;
-    let s = 0;
-    const lim = n - lag;
-    for (let i = 0; i < lim; i++) s += buf[i] * buf[i + lag];
-    return s / lim;
-  };
-  const rm = r(bestLag - 1);
-  const r0 = bestCorr;
-  const rp = r(bestLag + 1);
-  const denom = rm - 2 * r0 + rp;
-  const offset = denom !== 0 ? 0.5 * (rm - rp) / denom : 0;
-  const refinedLag = bestLag + offset;
+  // Choose the first peak whose value is at least PEAK_PICK_RATIO × the highest
+  // peak value (defends against sub-octave errors from strong upper partials).
+  let highest = 0;
+  for (const p of peaks) if (p.value > highest) highest = p.value;
+  const threshold = highest * PEAK_PICK_RATIO;
+  const chosen = peaks.find((p) => p.value >= threshold) ?? peaks[0];
 
-  const frequency = sampleRate / refinedLag;
+  if (chosen.value < CLARITY_THRESHOLD) {
+    return {
+      frequency: null,
+      midi: null,
+      pitchClass: null,
+      cents: null,
+      rms,
+      clarity: chosen.value
+    };
+  }
 
-  return frequencyToReading(frequency, rms);
+  // Parabolic interpolation around the chosen peak.
+  const t = chosen.tau;
+  const y1 = t > 0 ? nsdf[t - 1] : chosen.value;
+  const y2 = chosen.value;
+  const y3 = t < maxLag ? nsdf[t + 1] : chosen.value;
+  const denom = y1 - 2 * y2 + y3;
+  const offset = denom !== 0 ? (0.5 * (y1 - y3)) / denom : 0;
+  const refinedTau = t + offset;
+  const frequency = sampleRate / refinedTau;
+
+  return frequencyToReading(frequency, rms, chosen.value);
 }
 
-export function frequencyToReading(frequency: number, rms = 0): PitchReading {
+export function frequencyToReading(frequency: number, rms = 0, clarity = 0): PitchReading {
   if (!isFinite(frequency) || frequency <= 0) {
-    return { frequency: null, midi: null, pitchClass: null, cents: null, rms };
+    return { frequency: null, midi: null, pitchClass: null, cents: null, rms, clarity };
   }
   // MIDI 69 = A4 = 440Hz
   const midiFloat = 69 + 12 * Math.log2(frequency / 440);
@@ -123,12 +144,13 @@ export function frequencyToReading(frequency: number, rms = 0): PitchReading {
     midi,
     pitchClass: PITCH_CLASSES[pcIdx],
     cents,
-    rms
+    rms,
+    clarity
   };
 }
 
 export interface PitchAnalyserOptions {
-  /** FFT/buffer size used for analysis. Larger = lower frequencies but more latency. */
+  /** Buffer size used for analysis. Larger = lower frequencies / more stable, but more latency. */
   bufferSize?: number;
   /** Called on each analysis frame (~20–40ms). */
   onPitch: (reading: PitchReading) => void;
@@ -136,6 +158,29 @@ export interface PitchAnalyserOptions {
 
 export interface PitchAnalyserHandle {
   stop: () => Promise<void>;
+}
+
+async function requestMicStream(): Promise<MediaStream> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    throw new Error('Microphone API not available in this environment.');
+  }
+  // Try with processing disabled (best for instrument detection). iOS Safari
+  // often ignores these flags but won't fail the call.
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+  } catch (err) {
+    // Some browsers/devices reject specific constraints — fall back to plain audio.
+    if (err instanceof Error && err.name === 'OverconstrainedError') {
+      return await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    throw err;
+  }
 }
 
 /**
@@ -146,17 +191,7 @@ export interface PitchAnalyserHandle {
 export async function startPitchAnalyser(
   opts: PitchAnalyserOptions
 ): Promise<PitchAnalyserHandle> {
-  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error('Microphone API not available in this environment.');
-  }
-
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false
-    }
-  });
+  const stream = await requestMicStream();
 
   const AC = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) throw new Error('AudioContext not available.');

@@ -23,6 +23,8 @@
   let detectedSpelling = $state<string | null>(null);
   let cents = $state<number | null>(null);
   let rms = $state(0);
+  let peakRms = $state(0);
+  let clarity = $state(0);
 
   // Track the highlighted fingerboard MIDI separately so it persists briefly when
   // the player's bow stops between notes.
@@ -32,6 +34,12 @@
   const IN_TUNE_CENTS = 25;
 
   const inTune = $derived(cents != null && Math.abs(cents) <= IN_TUNE_CENTS);
+
+  // Logarithmic signal level: -60 dB → 0%, 0 dB → 100%.
+  const signalPct = $derived.by(() => {
+    const db = rms > 0 ? 20 * Math.log10(rms) : -80;
+    return Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+  });
 
   // Build a set of MIDI numbers belonging to the current scale fingering for highlighting only those.
   const scaleMidiSet = $derived.by(() => {
@@ -46,6 +54,8 @@
 
   function handleReading(r: PitchReading) {
     rms = r.rms;
+    if (r.rms > peakRms) peakRms = r.rms;
+    clarity = r.clarity;
     if (r.midi == null || r.frequency == null) {
       // If we haven't seen a confident pitch in HIGHLIGHT_HOLD_MS, clear the display.
       if (Date.now() - lastSeenAt > HIGHLIGHT_HOLD_MS) {
@@ -105,6 +115,8 @@
     cents = null;
     highlightedMidi = null;
     rms = 0;
+    peakRms = 0;
+    clarity = 0;
   }
 
   async function toggleListening() {
@@ -243,15 +255,30 @@
               </div>
             </div>
             <div class="bg-bg-card border border-border-subtle rounded-lg px-3 py-2">
-              <div class="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Signal</div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Signal</span>
+                <span class="text-[10px] text-text-tertiary tabular-nums">peak {(peakRms * 100).toFixed(1)}</span>
+              </div>
               <div class="mt-1.5 h-1.5 rounded-full bg-bg-hover overflow-hidden">
                 <div
-                  class="h-full bg-violet transition-all duration-100"
-                  style="width: {Math.min(100, rms * 800)}%;"
+                  class="h-full transition-all duration-100"
+                  class:bg-violet={clarity >= 0.6}
+                  class:bg-text-tertiary={clarity < 0.6}
+                  style="width: {signalPct}%;"
                 ></div>
+              </div>
+              <div class="mt-1 text-[10px] text-text-tertiary tabular-nums">
+                clarity {(clarity * 100).toFixed(0)}%
               </div>
             </div>
           </div>
+
+          {#if peakRms > 0 && peakRms < 0.01}
+            <p class="mt-3 text-xs text-text-secondary bg-bg-card border border-border-subtle rounded-md p-2.5 leading-relaxed">
+              Signal is very low. Move closer to the mic, remove the practice mute,
+              or check that the right input is selected in your browser/system.
+            </p>
+          {/if}
         {/if}
       </div>
     </div>
