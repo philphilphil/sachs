@@ -152,6 +152,11 @@ export function frequencyToReading(frequency: number, rms = 0, clarity = 0): Pit
 export interface PitchAnalyserOptions {
   /** Buffer size used for analysis. Larger = lower frequencies / more stable, but more latency. */
   bufferSize?: number;
+  /**
+   * Pre-analyser gain. iOS Safari attenuates getUserMedia audio heavily
+   * (WebKit bug 230902) so we amplify before the analyser. Default: 8x.
+   */
+  gain?: number;
   /** Called on each analysis frame (~20–40ms). */
   onPitch: (reading: PitchReading) => void;
 }
@@ -171,7 +176,8 @@ async function requestMicStream(): Promise<MediaStream> {
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
-        autoGainControl: false
+        autoGainControl: false,
+        channelCount: 1
       }
     });
   } catch (err) {
@@ -184,6 +190,25 @@ async function requestMicStream(): Promise<MediaStream> {
 }
 
 /**
+ * Try to disable on-device audio processing on the active mic track. iOS
+ * Safari will silently ignore this; on browsers that honour it, this is a
+ * second chance after the initial getUserMedia constraints.
+ */
+async function tryDisableProcessing(stream: MediaStream): Promise<void> {
+  const track = stream.getAudioTracks()[0];
+  if (!track || typeof track.applyConstraints !== 'function') return;
+  try {
+    await track.applyConstraints({
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
+    });
+  } catch {
+    // not all UAs support post-hoc constraint changes — that's fine.
+  }
+}
+
+/**
  * Start microphone-based pitch detection. Returns a handle to stop it.
  *
  * Throws if mic permission is denied or the API is unavailable.
@@ -192,17 +217,35 @@ export async function startPitchAnalyser(
   opts: PitchAnalyserOptions
 ): Promise<PitchAnalyserHandle> {
   const stream = await requestMicStream();
+  await tryDisableProcessing(stream);
 
   const AC = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) throw new Error('AudioContext not available.');
-  const ctx = new AC();
+
+  // iOS Safari runs WebAudio more reliably at 44100 than at the 48000 default
+  // some devices report. Try to pin the rate; fall back to no-arg constructor.
+  let ctx: AudioContext;
+  try {
+    ctx = new AC({ sampleRate: 44100 });
+  } catch {
+    ctx = new AC();
+  }
   await ctx.resume();
 
   const source = ctx.createMediaStreamSource(stream);
+
+  // Workaround for WebKit bug 230902 — iOS Safari delivers getUserMedia audio
+  // at a very low level. Boost it before analysis. Doesn't affect the
+  // user-audible output (we never connect to ctx.destination).
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = opts.gain ?? 8;
+
   const analyser = ctx.createAnalyser();
   analyser.fftSize = opts.bufferSize ?? 4096;
   analyser.smoothingTimeConstant = 0;
-  source.connect(analyser);
+
+  source.connect(gainNode);
+  gainNode.connect(analyser);
 
   const buf = new Float32Array(analyser.fftSize);
   let raf = 0;
@@ -223,6 +266,7 @@ export async function startPitchAnalyser(
       cancelAnimationFrame(raf);
       stream.getTracks().forEach((t) => t.stop());
       source.disconnect();
+      gainNode.disconnect();
       try {
         await ctx.close();
       } catch {
