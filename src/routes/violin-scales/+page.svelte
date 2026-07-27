@@ -1,18 +1,56 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import Fingerboard from '$lib/components/violin-scales/Fingerboard.svelte';
-  import { SCALES, computeScaleFingering } from '$lib/data/scales';
+  import ScaleCircle from '$lib/components/violin-scales/ScaleCircle.svelte';
+  import { CIRCLE_SCALES, computeScaleFingering } from '$lib/data/scales';
   import {
     startPitchAnalyser,
     type PitchAnalyserHandle,
     type PitchReading
   } from '$lib/audio/pitch-detect';
-  import { pitchToMidi } from '$lib/utils/ear-training/music-theory';
+  import { pitchToMidi, PITCH_CLASSES } from '$lib/utils/ear-training/music-theory';
 
-  let selectedId = $state(SCALES[0].id);
-  const fingering = $derived(
-    computeScaleFingering(SCALES.find((s) => s.id === selectedId) ?? SCALES[0])
+  let selectedIndex = $state(0);
+  let selectedMode = $state<'major' | 'minor'>('major');
+  const currentScale = $derived(
+    selectedMode === 'major'
+      ? CIRCLE_SCALES[selectedIndex].major
+      : CIRCLE_SCALES[selectedIndex].minor
   );
+  const fingering = $derived(computeScaleFingering(currentScale));
+
+  // Blind mode: the diagram starts empty and each note appears only after the
+  // player finds it. `revealedMidis` holds every stop the player has uncovered.
+  let blind = $state(false);
+  let revealedMidis = $state<Set<number>>(new Set());
+
+  function selectScale(index: number, mode: 'major' | 'minor') {
+    selectedIndex = index;
+    selectedMode = mode;
+    revealedMidis = new Set();
+  }
+
+  function toggleBlind() {
+    blind = !blind;
+    revealedMidis = new Set();
+  }
+
+  function revealAll() {
+    revealedMidis = new Set(scaleMidiSet);
+  }
+
+  // Pitch-class indices (0–11) the player has revealed, so the "Scale notes"
+  // list fills in alongside the diagram once any octave of a degree is played.
+  const revealedPcIndices = $derived.by(() => {
+    const set = new Set<number>();
+    for (const midi of revealedMidis) set.add(((midi % 12) + 12) % 12);
+    return set;
+  });
+
+  function noteRevealed(degreeIndex: number): boolean {
+    if (!blind) return true;
+    return revealedPcIndices.has(PITCH_CLASSES.indexOf(currentScale.pitchClasses[degreeIndex]));
+  }
 
   // Listening mode state
   let listening = $state(false);
@@ -74,6 +112,10 @@
     // Highlight only when the detected note matches a scale note on the fingerboard.
     if (scaleMidiSet.has(r.midi)) {
       highlightedMidi = r.midi;
+      // In blind mode, playing a scale note uncovers it on the diagram for good.
+      if (blind && !revealedMidis.has(r.midi)) {
+        revealedMidis = new Set(revealedMidis).add(r.midi);
+      }
     } else {
       highlightedMidi = null;
     }
@@ -145,33 +187,30 @@
       Violin <span class="serif italic font-normal">Scales</span>
     </h1>
     <p class="mt-4 text-text-secondary leading-relaxed max-w-xl">
-      Pick a scale, see where each finger lands on the violin in first position.
-      Turn on listen mode and play slowly — the diagram lights up as you hit each
-      note, with a needle showing how true your intonation is.
+      Pick a scale from the circle of fifths, see where each finger lands on the
+      violin in first position. Turn on listen mode and play slowly — the diagram
+      lights up as you hit each note, with a needle showing how true your
+      intonation is. Switch on blind mode to hide the notes and test your memory.
     </p>
 
     <hr class="hairline my-8" />
 
-    <!-- Scale picker -->
+    <!-- Scale picker: circle of fifths -->
     <p class="eyebrow mb-3">Scale</p>
-    <div class="flex flex-wrap gap-2 mb-8">
-      {#each SCALES as scale}
-        {@const active = selectedId === scale.id}
-        <button
-          type="button"
-          class="px-4 py-2 rounded-lg border text-sm transition-all duration-200 bg-transparent"
-          class:border-[color:var(--color-violet)]={active}
-          class:bg-[color:var(--color-violet-light)]={active}
-          class:text-[color:var(--color-violet-deep)]={active}
-          class:border-border-subtle={!active}
-          class:text-text-secondary={!active}
-          class:hover:border-[color:var(--color-violet)]={!active}
-          class:hover:text-[color:var(--color-violet-deep)]={!active}
-          onclick={() => (selectedId = scale.id)}
-        >
-          {scale.label}
-        </button>
-      {/each}
+    <p class="text-[13px] text-text-secondary leading-relaxed mb-4 max-w-xl">
+      Outer ring is major keys, inner ring their relative minors. Clockwise adds a
+      sharp, counter-clockwise a flat.
+    </p>
+    <div class="mb-8">
+      <ScaleCircle
+        scales={CIRCLE_SCALES}
+        {selectedIndex}
+        {selectedMode}
+        onselect={selectScale}
+      />
+      <p class="text-center text-sm text-text-secondary mt-3">
+        Selected: <span class="font-semibold text-text-primary">{currentScale.label}</span>
+      </p>
     </div>
 
     <!-- Two-column layout on desktop -->
@@ -183,6 +222,8 @@
           {highlightedMidi}
           {cents}
           {inTune}
+          {blind}
+          {revealedMidis}
         />
       </div>
 
@@ -191,32 +232,82 @@
         <p class="eyebrow mb-3">Scale notes</p>
         <div class="flex flex-wrap gap-1.5 mb-8">
           {#each fingering.scale.noteSpelling as note, i}
+            {@const shown = noteRevealed(i)}
             <span
-              class="px-2.5 py-1 rounded-md text-sm font-medium border border-border-subtle bg-bg-card text-text-primary tabular-nums"
+              class="px-2.5 py-1 rounded-md text-sm font-medium border tabular-nums"
+              class:border-border-subtle={shown}
+              class:bg-bg-card={shown}
+              class:text-text-primary={shown}
+              class:border-dashed={!shown}
+              class:border-border={!shown}
+              class:text-text-tertiary={!shown}
             >
-              <span class="text-text-tertiary text-[10px] mr-1 font-normal">{i + 1}</span>{note}
+              <span class="text-text-tertiary text-[10px] mr-1 font-normal">{i + 1}</span>{shown ? note : '·'}
             </span>
           {/each}
         </div>
 
-        <p class="eyebrow mb-3">String fingerings</p>
-        <ul class="space-y-2 mb-8">
-          {#each fingering.strings as s}
-            <li class="text-sm text-text-secondary flex gap-3 items-baseline">
-              <span class="serif italic text-text-primary text-base w-6 shrink-0">{s.stringName}</span>
-              <span class="text-text-tertiary text-[11px] w-14 shrink-0">string</span>
-              <span class="font-medium text-text-primary tabular-nums">
-                {#if s.stops.length === 0}
-                  <span class="text-text-tertiary italic">— not used —</span>
-                {:else}
-                  {#each s.stops as stop, idx}{idx > 0 ? ' · ' : ''}{stop.finger}<span class="text-text-tertiary">·</span>{stop.spelling}{/each}
-                {/if}
-              </span>
-            </li>
-          {/each}
-        </ul>
+        {#if !blind}
+          <p class="eyebrow mb-3">String fingerings</p>
+          <ul class="space-y-2 mb-8">
+            {#each fingering.strings as s}
+              <li class="text-sm text-text-secondary flex gap-3 items-baseline">
+                <span class="serif italic text-text-primary text-base w-6 shrink-0">{s.stringName}</span>
+                <span class="text-text-tertiary text-[11px] w-14 shrink-0">string</span>
+                <span class="font-medium text-text-primary tabular-nums">
+                  {#if s.stops.length === 0}
+                    <span class="text-text-tertiary italic">— not used —</span>
+                  {:else}
+                    {#each s.stops as stop, idx}{idx > 0 ? ' · ' : ''}{stop.finger}<span class="text-text-tertiary">·</span>{stop.spelling}{/each}
+                  {/if}
+                </span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
 
         <hr class="hairline my-6" />
+
+        <!-- Blind mode -->
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="min-w-0">
+            <p class="eyebrow mb-1.5">Blind mode</p>
+            <p class="text-[13px] text-text-secondary leading-relaxed">
+              Hide the fingering and recall the scale yourself. Each note appears
+              only once you play it.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={blind}
+            aria-label="Toggle blind mode"
+            class="relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-200"
+            class:bg-[color:var(--color-violet)]={blind}
+            class:bg-bg-hover={!blind}
+            onclick={toggleBlind}
+          >
+            <span
+              class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200"
+              class:translate-x-5={blind}
+            ></span>
+          </button>
+        </div>
+
+        {#if blind}
+          {#if !listening}
+            <p class="text-xs text-text-tertiary leading-relaxed mb-3">
+              Start listening below so the diagram can uncover notes as you play.
+            </p>
+          {/if}
+          <button
+            type="button"
+            class="w-full mb-6 px-4 py-2 rounded-lg border border-border-subtle text-sm text-text-secondary hover:border-[color:var(--color-violet)] hover:text-[color:var(--color-violet-deep)] transition-all duration-200"
+            onclick={revealAll}
+          >
+            Reveal the whole scale
+          </button>
+        {/if}
 
         <!-- Listen mode -->
         <p class="eyebrow mb-3">Listen mode</p>

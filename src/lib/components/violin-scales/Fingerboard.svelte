@@ -10,9 +10,25 @@
     cents?: number | null;
     /** True when the user is "in tune" within the cents threshold. */
     inTune?: boolean;
+    /** Blind mode: hide every finger stop until the player uncovers it by playing it. */
+    blind?: boolean;
+    /** MIDI numbers the player has already revealed (only used in blind mode). */
+    revealedMidis?: Set<number>;
   }
 
-  let { fingering, highlightedMidi = null, cents = null, inTune = false }: Props = $props();
+  let {
+    fingering,
+    highlightedMidi = null,
+    cents = null,
+    inTune = false,
+    blind = false,
+    revealedMidis
+  }: Props = $props();
+
+  function isRevealed(stop: FingerStop): boolean {
+    if (!blind) return true;
+    return revealedMidis?.has(pitchToMidi(stop.pitch)) ?? false;
+  }
 
   // Visual parameters.
   const NECK_WIDTH = 280; // px (includes side label gutters)
@@ -145,7 +161,7 @@
         {@const highlight = isHighlighted(stop)}
         {@const color = fingerColors[stop.finger]}
 
-        {#if !isOpen}
+        {#if !isOpen && isRevealed(stop)}
           <!-- Halo when highlighted -->
           {#if highlight}
             <circle
