@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { computeScaleFingering, makeScale, fingeringForString } from './scales';
+import {
+  computeScaleFingering,
+  makeScale,
+  fingeringForString,
+  CIRCLE_SCALES
+} from './scales';
 
 describe('makeScale', () => {
   it('builds C major as 7 natural notes', () => {
@@ -22,6 +27,65 @@ describe('makeScale', () => {
   it('builds D major with two sharps', () => {
     const s = makeScale('D', 'D', 'D', 'major');
     expect(s.noteSpelling).toEqual(['D', 'E', 'F♯', 'G', 'A', 'B', 'C♯']);
+  });
+
+  it('spells flat major keys with flats, not enharmonic sharps', () => {
+    expect(makeScale('B♭', 'B♭', 'B♭', 'major').noteSpelling).toEqual([
+      'B♭', 'C', 'D', 'E♭', 'F', 'G', 'A'
+    ]);
+    expect(makeScale('E♭', 'E♭', 'E♭', 'major').noteSpelling).toEqual([
+      'E♭', 'F', 'G', 'A♭', 'B♭', 'C', 'D'
+    ]);
+    expect(makeScale('D♭', 'D♭', 'D♭', 'major').noteSpelling).toEqual([
+      'D♭', 'E♭', 'F', 'G♭', 'A♭', 'B♭', 'C'
+    ]);
+    expect(makeScale('F', 'F', 'F', 'major').noteSpelling).toEqual([
+      'F', 'G', 'A', 'B♭', 'C', 'D', 'E'
+    ]);
+  });
+
+  it('spells F♯ major with six sharps including E♯', () => {
+    expect(makeScale('F♯', 'F♯', 'F♯', 'major').noteSpelling).toEqual([
+      'F♯', 'G♯', 'A♯', 'B', 'C♯', 'D♯', 'E♯'
+    ]);
+  });
+
+  it('accepts ASCII accidentals too', () => {
+    expect(makeScale('Bb', 'Bb', 'Bb', 'major').noteSpelling).toEqual([
+      'B♭', 'C', 'D', 'E♭', 'F', 'G', 'A'
+    ]);
+  });
+
+  it('builds natural minor keys with correct spelling', () => {
+    expect(makeScale('A', 'A', 'A', 'minor').noteSpelling).toEqual([
+      'A', 'B', 'C', 'D', 'E', 'F', 'G'
+    ]);
+    expect(makeScale('B♭', 'B♭', 'B♭', 'minor').noteSpelling).toEqual([
+      'B♭', 'C', 'D♭', 'E♭', 'F', 'G♭', 'A♭'
+    ]);
+    expect(makeScale('D♯', 'D♯', 'D♯', 'minor').noteSpelling).toEqual([
+      'D♯', 'E♯', 'F♯', 'G♯', 'A♯', 'B', 'C♯'
+    ]);
+  });
+});
+
+describe('CIRCLE_SCALES', () => {
+  it('has all 12 circle-of-fifths positions', () => {
+    expect(CIRCLE_SCALES).toHaveLength(12);
+    expect(CIRCLE_SCALES.map((c) => c.majorName)).toEqual([
+      'C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'D♭', 'A♭', 'E♭', 'B♭', 'F'
+    ]);
+  });
+
+  it('pairs each major with its relative minor', () => {
+    expect(CIRCLE_SCALES.map((c) => c.minorName)).toEqual([
+      'A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'D♯', 'B♭', 'F', 'C', 'G', 'D'
+    ]);
+  });
+
+  it('gives every scale a unique id', () => {
+    const ids = CIRCLE_SCALES.flatMap((c) => [c.major.id, c.minor.id]);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

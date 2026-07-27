@@ -30,10 +30,6 @@ const LETTER_TO_SEMITONE: Record<Letter, number> = {
   C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11
 };
 
-function pcIndex(pc: PitchClass): number {
-  return PITCH_CLASSES.indexOf(pc);
-}
-
 /** Spell a pitch class using the supplied letter, adding sharps/flats as needed. */
 function spellWithLetter(pcIdx: number, letter: Letter): string {
   const naturalSemitone = LETTER_TO_SEMITONE[letter];
@@ -46,34 +42,34 @@ function spellWithLetter(pcIdx: number, letter: Letter): string {
   return letter;
 }
 
-/** Pick a sensible starting letter for a tonic. */
-function tonicLetter(tonic: PitchClass): Letter {
-  // PitchClass uses sharp spelling. Map to the most common letter for that key.
-  // (For MVP we only use C and A; this also handles other naturals correctly.)
-  const naturals: Record<string, Letter> = {
-    C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'B'
-  };
-  if (naturals[tonic]) return naturals[tonic];
-  // Sharp tonics: prefer the sharp letter (e.g. F# → F).
-  const map: Record<string, Letter> = {
-    'C#': 'C', 'D#': 'D', 'F#': 'F', 'G#': 'G', 'A#': 'A'
-  };
-  return map[tonic] ?? 'C';
+/**
+ * Parse a display tonic (e.g. "F♯", "B♭", "C") into its starting letter and
+ * sharp-spelled pitch class. The letter is what fixes diatonic spelling — a key
+ * named "B♭" must spell its scale off the letter B (B♭ C D E♭ …), never off the
+ * enharmonic A♯. Accepts unicode (♯/♭) or ASCII (#/b) accidentals.
+ */
+function parseTonic(name: string): { letter: Letter; pitchClass: PitchClass } {
+  const letter = name[0].toUpperCase() as Letter;
+  const accidental = name.slice(1);
+  let semitone = LETTER_TO_SEMITONE[letter];
+  if (accidental === '♯' || accidental === '#') semitone += 1;
+  else if (accidental === '♭' || accidental === 'b') semitone -= 1;
+  const pcIdx = ((semitone % 12) + 12) % 12;
+  return { letter, pitchClass: PITCH_CLASSES[pcIdx] };
 }
 
 function buildScaleData(
-  tonic: PitchClass,
+  startLetter: Letter,
+  tonicPcIdx: number,
   mode: ScaleMode
 ): { pitchClasses: PitchClass[]; spelling: string[] } {
   const intervals = mode === 'major' ? MAJOR_INTERVALS : NATURAL_MINOR_INTERVALS;
-  const start = pcIndex(tonic);
-  const startLetter = tonicLetter(tonic);
   const startLetterIdx = LETTERS.indexOf(startLetter);
 
   const pitchClasses: PitchClass[] = [];
   const spelling: string[] = [];
   for (let i = 0; i < 7; i++) {
-    const pcIdx = (start + intervals[i]) % 12;
+    const pcIdx = (tonicPcIdx + intervals[i]) % 12;
     pitchClasses.push(PITCH_CLASSES[pcIdx]);
     const letter = LETTERS[(startLetterIdx + i) % 7];
     spelling.push(spellWithLetter(pcIdx, letter));
@@ -81,18 +77,66 @@ function buildScaleData(
   return { pitchClasses, spelling };
 }
 
-export function makeScale(id: string, label: string, tonic: PitchClass, mode: ScaleMode): ScaleDef {
-  const { pitchClasses, spelling } = buildScaleData(tonic, mode);
-  return { id, label, tonic, mode, pitchClasses, noteSpelling: spelling };
+/**
+ * Build a scale definition. `tonic` is a display key name (e.g. "C", "F♯",
+ * "B♭") — its letter drives the diatonic spelling so both sharp and flat keys
+ * are spelled correctly.
+ */
+export function makeScale(id: string, label: string, tonic: string, mode: ScaleMode): ScaleDef {
+  const { letter, pitchClass } = parseTonic(tonic);
+  const { pitchClasses, spelling } = buildScaleData(letter, PITCH_CLASSES.indexOf(pitchClass), mode);
+  return { id, label, tonic: pitchClass, mode, pitchClasses, noteSpelling: spelling };
 }
 
-/** MVP scales. */
-export const SCALES: ScaleDef[] = [
-  makeScale('C-major', 'C Major (C-Dur)', 'C', 'major'),
-  makeScale('G-major', 'G Major (G-Dur)', 'G', 'major'),
-  makeScale('D-major', 'D Major (D-Dur)', 'D', 'major'),
-  makeScale('A-major', 'A Major (A-Dur)', 'A', 'major')
+/**
+ * The twelve positions of the circle of fifths, each with its major key and
+ * relative (natural) minor. Position 0 (C / A minor) sits at the top; each step
+ * clockwise adds a sharp (or removes a flat). Enharmonic positions use the
+ * spellings shared with the Circle of Fifths view (F♯ and D♭).
+ */
+const CIRCLE_OF_FIFTHS: { major: string; minor: string }[] = [
+  { major: 'C', minor: 'A' },
+  { major: 'G', minor: 'E' },
+  { major: 'D', minor: 'B' },
+  { major: 'A', minor: 'F♯' },
+  { major: 'E', minor: 'C♯' },
+  { major: 'B', minor: 'G♯' },
+  { major: 'F♯', minor: 'D♯' },
+  { major: 'D♭', minor: 'B♭' },
+  { major: 'A♭', minor: 'F' },
+  { major: 'E♭', minor: 'C' },
+  { major: 'B♭', minor: 'G' },
+  { major: 'F', minor: 'D' }
 ];
+
+export interface CircleScale {
+  /** Position 0–11 around the circle of fifths (0 = C major / A minor at top). */
+  index: number;
+  /** Display name of the major key, e.g. "B♭". */
+  majorName: string;
+  /** Display name of the relative-minor tonic (without the trailing "m"). */
+  minorName: string;
+  major: ScaleDef;
+  minor: ScaleDef;
+}
+
+function scaleId(name: string, mode: ScaleMode): string {
+  // e.g. "F♯" + major → "f-sharp-major"; "B♭" + minor → "b-flat-minor".
+  const slug = name
+    .replace(/♯/g, '-sharp')
+    .replace(/♭/g, '-flat')
+    .toLowerCase();
+  return `${slug}-${mode}`;
+}
+
+/** All 24 major/minor scales, laid out by circle-of-fifths position. */
+export const CIRCLE_SCALES: CircleScale[] = CIRCLE_OF_FIFTHS.map((pos, index) => ({
+  index,
+  majorName: pos.major,
+  minorName: pos.minor,
+  major: makeScale(scaleId(pos.major, 'major'), `${pos.major} Major`, pos.major, 'major'),
+  minor: makeScale(scaleId(pos.minor, 'minor'), `${pos.minor} Minor`, pos.minor, 'minor')
+}));
 
 /** Open strings of the violin in first position (lowest to highest). */
 export const VIOLIN_STRINGS: { name: string; pitch: Pitch }[] = [
